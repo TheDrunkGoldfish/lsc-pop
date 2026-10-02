@@ -146,3 +146,12 @@ def test_shift_years_derived_from_reference_year(project_copy):
     assert cfg25.shift_years == 4
     assert cfg25.mye_sheet == "Mid-2025 LSOA 2021"
     assert load_config(_edit(project_copy, cohort_shift_years=2)).shift_years == 2
+
+
+def test_config_hash_ignores_paths(cfg):
+    from lsc_pop.config import with_paths
+
+    moved = with_paths(cfg, raw="/Volumes/c/s/v/raw", manifest="/Volumes/c/s/v/manifest.json")
+    assert moved.config_hash() == cfg.config_hash()
+    assert str(moved.resolve(moved.paths.raw)) == "/Volumes/c/s/v/raw"
+    assert moved.root == cfg.root

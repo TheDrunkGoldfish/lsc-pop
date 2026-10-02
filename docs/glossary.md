@@ -97,7 +97,17 @@ explanation elsewhere, the link points to it.
 | **Bridge table** | A table linking two dimensions many-to-many with weights: here LSOA ↔ trust with catchment proportions. |
 | **Parquet** | A compressed, column-oriented file format read by pandas, Databricks, DuckDB, Power BI and others. The canonical output format. |
 | **BI** | Business intelligence (tools such as Power BI or Databricks SQL dashboards). |
-| **Databricks / Delta / Unity Catalog** | A data platform / its table format / its catalogue of tables and permissions. |
+| **Databricks / Delta / Unity Catalog** | A data platform / its table format / its catalogue of tables and permissions (catalog → schema → table). |
+| **Medallion layers (bronze / silver / gold)** | Bronze = raw data as ingested; silver = cleaned and conformed; gold = ready for analysis. This project adds **audit** for checks and provenance. |
+| **Lakeflow Declarative Pipeline** | Databricks' framework (formerly Delta Live Tables, DLT) for defining tables as queries. The platform works out the dependency order, refreshes them, and records data quality and lineage. |
+| **Materialized view / streaming table** | Pipeline table types: a materialized view is recomputed from its query; a streaming table processes only new input, e.g. new files. |
+| **Auto Loader** | Databricks' incremental file ingestion (`cloudFiles`), used for the bronze CSV/JSON sources. |
+| **Expectation** | A data-quality rule on a pipeline table. `ON VIOLATION FAIL UPDATE` stops the update; otherwise violations are only recorded. |
+| **Volume** | A Unity Catalog storage location for files (here, raw downloads: `/Volumes/<catalog>/<schema>/<volume>`). |
+| **Asset Bundle / target** | Databricks' deployment package (YAML + code) and its environments: here dev, test and prod (`databricks/databricks.yml`). |
+| **Serverless** | Databricks-managed compute; no clusters to configure. |
+| **applyInPandas** | A Spark operation that runs a Python (pandas) function on each group of rows in parallel. Used to run IPF per LTLA. |
+| **Parity** | Agreement between the Databricks and local implementations within stated tolerances (ADR-0024). |
 | **uv** | The Python package and environment manager used to install exact dependency versions (`uv.lock`). |
 | **CLI** | Command-line interface: the `lsc-pop` command. |
 | **API** | Application programming interface: here, the ONS and Nomis web services that return data on request. |

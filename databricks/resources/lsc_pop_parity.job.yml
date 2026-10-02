@@ -1,0 +1,29 @@
+# Optional: compare the gold tables with a local reference run uploaded to <volume>/reference (ADR-0024).
+resources:
+  jobs:
+    lsc_pop_parity:
+      name: lsc_pop_parity_${bundle.target}
+      description: Parity of Databricks gold tables vs the local lsc-pop reference outputs.
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: parity
+          environment_key: lsc_pop
+          spark_python_task:
+            python_file: ../src/parity_task.py
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --schema-gold
+              - ${var.schema_gold}
+              - --schema-audit
+              - ${var.schema_audit}
+              - --reference-dir
+              - ${var.volume_path}/reference
+              - --reference-year
+              - "2024"
+      environments:
+        - environment_key: lsc_pop
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

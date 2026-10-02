@@ -20,8 +20,13 @@ dependencies = [
 
 [project.scripts]
 lsc-pop = "lsc_pop.cli:app"
+lsc-pop-task = "lsc_pop.cli:task_main"  # Databricks wheel tasks (no SystemExit on success)
 
 [dependency-groups]
+databricks = [
+    "jsonschema>=4.22",
+    "pyspark>=4.0",
+]
 dev = [
     "pytest>=8",
     "ruff>=0.6",
@@ -33,6 +38,12 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/lsc_pop"]
+
+# Ship config, mappings, the source register and the raw-data manifest inside the wheel, so an
+# installed package (e.g. on Databricks) uses exactly the repo's settings (lsc_pop.config).
+[tool.hatch.build.targets.wheel.force-include]
+"config" = "lsc_pop/_bundled/config"
+"data/manifest.json" = "lsc_pop/_bundled/data/manifest.json"
 
 [tool.ruff]
 line-length = 100
@@ -50,3 +61,4 @@ extend-immutable-calls = ["typer.Option", "typer.Argument"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/lsc_pop/report.py" = ["E501"]  # long Markdown text literals
+"databricks/src/pipeline/transformations/*.py" = ["E501"]  # Unity Catalog table comments

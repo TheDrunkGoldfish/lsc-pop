@@ -20,3 +20,6 @@ outputs/*
 !outputs/.gitkeep
 
 .DS_Store
+
+# Databricks bundle state and local variable overrides (workspace-specific)
+.databricks/

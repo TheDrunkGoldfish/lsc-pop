@@ -213,3 +213,29 @@ all 13 raw files with SHA-256s identical to the manifest (19 min). Its full run 
 The clean copy predated a final edit to an error message and the report generator, neither of which is on the data
 path. Later runs (`20261002T081145Z_282797bf`, which added the CAT-11 diagnostic, and `20261002T132502Z_282797bf`, which dropped the
 constant `variant` column; ADR-0020) produce the same table hashes.
+
+## 4. Databricks implementation
+The same method also runs as a Lakeflow Declarative Pipeline on Databricks (`databricks/`; ADR-0022). The local
+pipeline above is the reference.
+
+| Local stage (`src/lsc_pop/`) | Databricks (`databricks/src/pipeline/transformations/`) | Same code? |
+|---|---|---|
+| download | `ingest` job task: `lsc-pop download --mode download\|verify` into a Volume | Identical |
+| raw parsing | `00_bronze.py`: Auto Loader for the CSV/JSON sources; `lsc_pop` parsers for xlsx/ODS/zip/lookups | Parsers identical |
+| A geography | `10_silver_geography.sql` | Reimplemented in SQL |
+| B census + reconciliation | `15_silver_census.sql`, `20_silver_reconcile.sql` | Reimplemented in SQL (margins match bit for bit) |
+| C IPF base | `30_model.py`: `seed_array` on the driver, `fit_arrays` per LTLA via `applyInPandas` | Identical numpy, distributed |
+| D roll-forward | `40_gold_rollforward.sql` (fallback chain as SQL windows; three variants) | Reimplemented in SQL |
+| F deprivation, G catchments | `45_silver_iod_catchments.sql`, `60_gold_star.sql` | Reimplemented in SQL |
+| OHID comparison, CAT-11 | `70_audit.py` (calls `lsc_pop.catchments`) | Identical |
+| checks | `80_checks.sql`: check tables with `ON VIOLATION FAIL UPDATE` expectations | Same ids and rules |
+
+Parity on the full real data (local Spark, 2026-10-02):
+- reconciled margins identical;
+- 2021 base within 6.8 × 10⁻⁷ people;
+- fact table within 6.4 × 10⁻⁷ people (both totals 58,620,101);
+- dimensions and bridge identical;
+- all 34 Databricks checks pass.
+
+ADR-0024 explains why bit-identity isn't expected (IPF batching, summation order).
+

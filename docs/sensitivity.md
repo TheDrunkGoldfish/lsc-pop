@@ -2,7 +2,7 @@
 
 > **Generated file.** Rendered by `lsc-pop docs` from the latest run's `sensitivity_variants.csv` and `sensitivity_seed_floor.csv`. Don't edit by hand. Terms: [glossary](glossary.md).
 
-Run: `20261002T140001Z_282797bf_318f4d5a`. Reference year 2024; default variant `cohort`; seed floor 0.5; newborn proxy ages [0].
+Run: `20261002T155325Z_d1033f90_6cc3e8e2`. Reference year 2024; default variant `cohort`; seed floor 0.5; newborn proxy ages [0].
 
 ## 1. Variants compared with the default, by ethnic group (6 groups)
 

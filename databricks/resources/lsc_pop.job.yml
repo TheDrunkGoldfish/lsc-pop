@@ -1,0 +1,57 @@
+# Lakeflow Job: ingest raw files into the Volume (download or verify), refresh the pipeline, then the
+# OHID audit comparisons (eager pandas code, so it runs as a job task after the pipeline).
+resources:
+  jobs:
+    lsc_pop_job:
+      name: lsc_pop_${bundle.target}
+      description: Modelled LSOA population by sex, age and ethnicity (England, mid-year). Modelled estimates - not official statistics.
+      max_concurrent_runs: 1
+      schedule:
+        quartz_cron_expression: "0 0 6 1 * ?"   # monthly; inputs change at most a few times a year
+        timezone_id: Europe/London
+        pause_status: PAUSED
+      tasks:
+        - task_key: ingest
+          environment_key: lsc_pop
+          python_wheel_task:
+            package_name: lsc_pop
+            entry_point: lsc-pop-task   # returns normally on success (Databricks fails on SystemExit)
+            parameters:
+              - download
+              - --mode
+              - ${var.ingest_mode}
+              - --raw-dir
+              - ${var.volume_path}/raw
+              - --manifest
+              - ${var.volume_path}/manifest.json
+        - task_key: pipeline
+          depends_on:
+            - task_key: ingest
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.lsc_pop_pipeline.id}
+            full_refresh: false
+        - task_key: audit
+          depends_on:
+            - task_key: pipeline
+          environment_key: lsc_pop
+          spark_python_task:
+            python_file: ../src/audit_task.py
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --schema-bronze
+              - ${var.schema_bronze}
+              - --schema-silver
+              - ${var.schema_silver}
+              - --schema-gold
+              - ${var.schema_gold}
+              - --schema-audit
+              - ${var.schema_audit}
+              - --raw-dir
+              - ${var.volume_path}/raw
+      environments:
+        - environment_key: lsc_pop
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

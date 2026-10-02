@@ -1,0 +1,65 @@
+# Databricks Asset Bundle ("Declarative Automation Bundle") for the lsc-pop pipeline (ADR-0022).
+# Deploy:   databricks bundle deploy -t dev      Run:  databricks bundle run -t dev lsc_pop_job
+# The catalog, schemas and Volume must ALREADY EXIST; the bundle never creates them.
+bundle:
+  name: lsc_pop
+
+include:
+  - resources/*.yml
+
+artifacts:
+  # The lsc-pop package (repo root, one level up) with config, mappings and manifest bundled in.
+  lsc_pop_wheel:
+    type: whl
+    path: ..
+    build: uv build --wheel
+    dynamic_version: true   # unique version per deploy, so serverless always reinstalls it
+
+variables:
+  catalog:
+    description: Existing Unity Catalog catalog for all tables.
+  schema_bronze:
+    description: Existing schema for raw-file tables.
+    default: bronze
+  schema_silver:
+    description: Existing schema for tidy/conformed tables (also the pipeline's default schema).
+    default: silver
+  schema_gold:
+    description: Existing schema for the star schema (fact_population, dim_*, bridge_lsoa_trust).
+    default: gold
+  schema_audit:
+    description: Existing schema for checks, provenance, sensitivity and OHID comparisons.
+    default: audit
+  volume_path:
+    description: Existing Unity Catalog Volume for raw files, e.g. /Volumes/<catalog>/<schema>/<volume>.
+  ingest_mode:
+    description: "download (fetch from publishers; needs internet) or verify (files already uploaded to <volume_path>/raw)."
+    default: download
+  prod_service_principal:
+    description: Service principal application id that runs the prod job (prod target only).
+    default: ""
+
+targets:
+  dev:
+    mode: development
+    default: true
+    variables:
+      catalog: lsc_pop_dev
+      volume_path: /Volumes/lsc_pop_dev/bronze/landing
+
+  test:
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: lsc_pop_test
+      volume_path: /Volumes/lsc_pop_test/bronze/landing
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      service_principal_name: ${var.prod_service_principal}
+    variables:
+      catalog: lsc_pop
+      volume_path: /Volumes/lsc_pop/bronze/landing

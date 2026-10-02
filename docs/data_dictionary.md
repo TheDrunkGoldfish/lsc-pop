@@ -163,3 +163,15 @@ documented in ADR-0019 and `schema.sql` query 2.
 `metadata.json` (run metadata + full config), `run_log.jsonl` (→ `transformations.md`), `validation.jsonl`
 (→ `validation_report.md`), `output_hashes.json`, `sensitivity_variants.csv`, `sensitivity_seed_floor.csv`,
 `trust_comparison_{totals,ethnicity,imd,ethnicity_diagnostic}.csv`.
+
+## Databricks tables (`databricks/`; ADR-0022)
+The gold tables match the star schema above: same columns, plus `reference_year` on `fact_population`. One
+difference: `dim_lsoa.population_mid_year` here is `population_mid<year>` locally.
+
+| Schema | Tables |
+|---|---|
+| bronze | `rm032_raw`, `rm200_raw`, `seed_raw`, `seed_blocked_raw` (Auto Loader streaming tables); `seed_requested_raw`, `ts021_raw`, `lookup_nhs_raw`, `lookup_census_raw`, `lookup_ltla_region_raw`, `iod_raw`, `mye_raw`, `mye_broad_raw`, `ohid_t1_raw`, `ohid_t2_raw`, `ohid_t5_raw`, `ohid_t6_raw`, `ohid_t7_raw`. Each row carries `_source_file` and `_ingested_at` |
+| silver | `params` (one row of config settings + hashes), `map_ethnicity`, `map_age`, `source_age_map`, `lsoa_geography`, `rm032`, `rm200`, `ts021`, `seed_age91`, `seed_age23`, `seed_blocked`, `mye`, `census_band_totals`, `census_margins`, `base_2021`, `iod`, `ohid_shares` |
+| gold | `fact_population`, `dim_lsoa`, `dim_ethnicity`, `dim_age`, `dim_trust`, `bridge_lsoa_trust` (private: `rf_level0`, `rf_shares`) |
+| audit | `validation` (all checks), `checks_geography`, `checks_census`, `checks_model`, `checks_outputs`, `ohid_checks`, `run_metadata`, `source_manifest`, `sensitivity`, `share_fallback`, `ohid_comparison_{totals,ethnicity,imd,ethnicity_diagnostic}`, `parity` (parity job) |
+

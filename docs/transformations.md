@@ -2,7 +2,7 @@
 
 > **Generated file.** Rendered by `lsc-pop docs` from `outputs/<run_id>/run_log.jsonl` of the latest complete run. Don't edit by hand. Terms: [glossary](glossary.md).
 
-Run `20261002T140001Z_282797bf_318f4d5a` · started 2026-10-02T14:00:01Z · config `282797bf08fa` · code `318f4d5a5124` · uv.lock `0e2a44049b59` · git n/a (not a git repo; ADR-0009)
+Run `20261002T155325Z_d1033f90_6cc3e8e2` · started 2026-10-02T15:53:25Z · config `d1033f90b44e` · code `6cc3e8e293d6` · uv.lock `67e24d4e0904` · git fd2d36566f1137bc132953e4d1774ce103c11bb2
 
 ## Summary
 
@@ -48,7 +48,7 @@ Run `20261002T140001Z_282797bf_318f4d5a` · started 2026-10-02T14:00:01Z · conf
 
 ### 1. `geography.read_nhs`
 
-2026-10-02T14:00:01.264Z → 2026-10-02T14:00:01.337Z · ok
+2026-10-02T15:53:25.794Z → 2026-10-02T15:53:25.872Z · ok
 
 Parameters: `{"columns": {"ICB26CD": "icb_cd", "ICB26CDH": "icb_ods", "ICB26NM": "icb_nm", "LAD26CD": "lad_cd", "LAD26NM": "lad_nm", "LSOA21CD": "lsoa21cd", "LSOA21NM": "lsoa21nm", "NHSER26CD": "nhser_cd", "NHSER26CDH": "nhser_ods", "NHSER26NM": "nhser_nm", "SICBL26CD": "sicbl_cd", "SICBL26CDH": "sicbl_ods", "SICBL26NM": "sicbl_nm"}, "file": "lsoa21_sicbl26_icb26_nhser26_lad26.csv", "key": "lsoa21cd", "source": "S7", "vintage": "2026-04"}`
 
@@ -57,7 +57,7 @@ Parameters: `{"columns": {"ICB26CD": "icb_cd", "ICB26CDH": "icb_ods", "ICB26NM":
 
 ### 2. `geography.read_census`
 
-2026-10-02T14:00:01.337Z → 2026-10-02T14:00:01.503Z · ok
+2026-10-02T15:53:25.872Z → 2026-10-02T15:53:26.041Z · ok
 
 Parameters: `{"columns": {"LAD22CD": "ltla21cd", "LAD22NM": "ltla21nm", "LSOA21CD": "lsoa21cd", "MSOA21CD": "msoa21cd", "MSOA21NM": "msoa21nm"}, "file": "oa21_lsoa21_msoa21_lad22_exactfit_v3.csv", "key": "lsoa21cd", "source": "S7b", "vintage": "2021-12"}`
 
@@ -66,7 +66,7 @@ Parameters: `{"columns": {"LAD22CD": "ltla21cd", "LAD22NM": "ltla21nm", "LSOA21C
 
 ### 3. `geography.read_ltla_region`
 
-2026-10-02T14:00:01.503Z → 2026-10-02T14:00:01.505Z · ok
+2026-10-02T15:53:26.042Z → 2026-10-02T15:53:26.044Z · ok
 
 Parameters: `{"columns": {"LAD22CD": "ltla21cd", "RGN22CD": "rgn21cd", "RGN22NM": "rgn21nm"}, "file": "lad22_rgn22.csv", "key": "ltla21cd", "source": "S7c", "vintage": "2022-12"}`
 
@@ -75,7 +75,7 @@ Parameters: `{"columns": {"LAD22CD": "ltla21cd", "RGN22CD": "rgn21cd", "RGN22NM"
 
 ### 4. `geography.build_lookup`
 
-2026-10-02T14:00:01.505Z → 2026-10-02T14:00:01.595Z · ok
+2026-10-02T15:53:26.044Z → 2026-10-02T15:53:26.137Z · ok
 
 Parameters: `{"footprint": {"extra_lsoas_from_trust_catchments": [], "focus_icb_codes": ["E54000048"], "icb_codes": [], "mode": "england"}}`
 
@@ -87,14 +87,14 @@ Parameters: `{"footprint": {"extra_lsoas_from_trust_catchments": [], "focus_icb_
 
 ### 5. `census.load_rm032`
 
-2026-10-02T14:00:01.757Z → 2026-10-02T14:00:04.392Z · ok
+2026-10-02T15:53:26.308Z → 2026-10-02T15:53:28.966Z · ok
 
 - input **S1/rm032_lsoa21_england.csv**: 6,751,000 rows · hash `87f8afdcba56`
 - output **rm032**: 6,413,450 rows · hash `b3345b72e425` · population 56,490,573 (F 28,834,314, M 27,656,259)
 
 ### 6. `census.load_rm200`
 
-2026-10-02T14:00:04.392Z → 2026-10-02T14:00:06.555Z · ok
+2026-10-02T15:53:28.966Z → 2026-10-02T15:53:31.179Z · ok
 
 - input **S2/rm200_lsoa21_england.csv**: 6,210,920 rows · hash `056bf02fe57a`
 - output **rm200**: 6,143,410 rows · hash `9b0a288b793a` · population 56,489,042 (F 28,832,682, M 27,656,360)
@@ -102,7 +102,7 @@ Parameters: `{"footprint": {"extra_lsoas_from_trust_catchments": [], "focus_icb_
 
 ### 7. `census.load_ts021`
 
-2026-10-02T14:00:06.557Z → 2026-10-02T14:00:06.678Z · ok
+2026-10-02T15:53:31.181Z → 2026-10-02T15:53:31.301Z · ok
 
 - input **S4/census2021-ts021.zip!census2021-ts021-lsoa.csv**: 35,672 rows · hash `ca2301d72a2d`
 - output **ts021**: 641,345 rows · hash `255ab8a3c36a` · population 56,490,108
@@ -110,7 +110,7 @@ Parameters: `{"footprint": {"extra_lsoas_from_trust_catchments": [], "focus_icb_
 
 ### 8. `census.load_seed_age_91a`
 
-2026-10-02T14:00:06.678Z → 2026-10-02T14:00:11.303Z · ok
+2026-10-02T15:53:31.301Z → 2026-10-02T15:53:35.829Z · ok
 
 - input **S3/ltla21_eth20_sex_age91.jsonl.gz**: 1,095,640 rows · hash `6c09e7478a4d`
 - output **seed_age_91a**: 1,040,858 rows · hash `b6b05cd8d348` · population 56,040,038 (F 28,606,005, M 27,434,033)
@@ -118,7 +118,7 @@ Parameters: `{"footprint": {"extra_lsoas_from_trust_catchments": [], "focus_icb_
 
 ### 9. `census.load_seed_age_23a`
 
-2026-10-02T14:00:11.361Z → 2026-10-02T14:00:12.497Z · ok
+2026-10-02T15:53:35.887Z → 2026-10-02T15:53:37.011Z · ok
 
 - input **S3/ltla21_eth20_sex_age23.jsonl.gz**: 283,360 rows · hash `8881f4e2d4c8`
 - output **seed_age_23a**: 269,192 rows · hash `934fcadc257c` · population 56,487,999 (F 28,832,825, M 27,655,174)
@@ -126,7 +126,7 @@ Parameters: `{"footprint": {"extra_lsoas_from_trust_catchments": [], "focus_icb_
 
 ### 10. `census.compare_tables`
 
-2026-10-02T14:00:12.526Z → 2026-10-02T14:00:13.817Z · ok
+2026-10-02T15:53:37.038Z → 2026-10-02T15:53:38.360Z · ok
 
 - note: rm032_vs_rm200_lsoa_sex: {"cells": 67510, "share_identical": 0.0682, "mean_abs": 4.771, "p50_abs": 4.0, "p95_abs": 12.0, "p99_abs": 16.0, "max_abs": 29.0, "net": 1531.0, "p95_rel": 0.015, "max_rel": 0.0377}
 - note: rm032_vs_rm200_lsoa_sex_band: {"cells": 337550, "share_identical": 0.1717, "mean_abs": 2.047, "p50_abs": 2.0, "p95_abs": 5.0, "p99_abs": 8.0, "max_abs": 16.0, "net": 1531.0, "p95_rel": 0.042, "max_rel": 0.75}
@@ -138,7 +138,7 @@ Parameters: `{"footprint": {"extra_lsoas_from_trust_catchments": [], "focus_icb_
 
 ### 11. `census.reconcile_margins[rm200]`
 
-2026-10-02T14:00:13.820Z → 2026-10-02T14:00:21.337Z · ok
+2026-10-02T15:53:38.362Z → 2026-10-02T15:53:45.958Z · ok
 
 Parameters: `{"source": "rm200"}`
 
@@ -149,7 +149,7 @@ Parameters: `{"source": "rm200"}`
 
 ### 12. `base.build_seed`
 
-2026-10-02T14:00:25.510Z → 2026-10-02T14:00:25.668Z · ok
+2026-10-02T15:53:50.261Z → 2026-10-02T15:53:50.423Z · ok
 
 Parameters: `{"max_iter": 1000, "seed_floor": 0.5, "seed_substitutes": {"E06000053": "E06000052"}, "sensitivity_floors": [0.01, 0.5, 2.0], "tolerance": 1e-06}`
 
@@ -168,7 +168,7 @@ Parameters: `{"max_iter": 1000, "seed_floor": 0.5, "seed_substitutes": {"E060000
 
 ### 13. `base.fit`
 
-2026-10-02T14:00:26.585Z → 2026-10-02T14:00:33.078Z · ok
+2026-10-02T15:53:51.296Z → 2026-10-02T15:53:57.842Z · ok
 
 Parameters: `{"seed_floor": 0.5, "tol": 1e-06}`
 
@@ -180,7 +180,7 @@ Parameters: `{"seed_floor": 0.5, "tol": 1e-06}`
 
 ### 14. `base.sensitivity[floor=0.01]`
 
-2026-10-02T14:00:34.578Z → 2026-10-02T14:00:34.717Z · ok
+2026-10-02T15:53:59.315Z → 2026-10-02T15:53:59.458Z · ok
 
 Parameters: `{"seed_floor": 0.01, "tol": 1e-06}`
 
@@ -192,7 +192,7 @@ Parameters: `{"seed_floor": 0.01, "tol": 1e-06}`
 
 ### 15. `base.sensitivity[floor=0.5]`
 
-2026-10-02T14:00:34.796Z → 2026-10-02T14:00:34.878Z · ok
+2026-10-02T15:53:59.534Z → 2026-10-02T15:53:59.620Z · ok
 
 Parameters: `{"seed_floor": 0.5, "tol": 1e-06}`
 
@@ -204,7 +204,7 @@ Parameters: `{"seed_floor": 0.5, "tol": 1e-06}`
 
 ### 16. `base.sensitivity[floor=2]`
 
-2026-10-02T14:00:34.957Z → 2026-10-02T14:00:35.037Z · ok
+2026-10-02T15:53:59.696Z → 2026-10-02T15:53:59.779Z · ok
 
 Parameters: `{"seed_floor": 2.0, "tol": 1e-06}`
 
@@ -216,7 +216,7 @@ Parameters: `{"seed_floor": 2.0, "tol": 1e-06}`
 
 ### 17. `base.sensitivity[uniform seed]`
 
-2026-10-02T14:00:35.116Z → 2026-10-02T14:00:35.142Z · ok
+2026-10-02T15:53:59.854Z → 2026-10-02T15:53:59.882Z · ok
 
 Parameters: `{"seed_floor": 1.0, "tol": 1e-06}`
 
@@ -228,13 +228,13 @@ Parameters: `{"seed_floor": 1.0, "tol": 1e-06}`
 
 ### 18. `base.write`
 
-2026-10-02T14:00:35.263Z → 2026-10-02T14:00:41.276Z · ok
+2026-10-02T15:54:00.002Z → 2026-10-02T15:54:06.155Z · ok
 
 - output **base2021**: 116,724,790 rows · hash `ed21fc0c99f3` · population 56,489,042 (F 28,832,682, M 27,656,360)
 
 ### 19. `rollforward.load_mye`
 
-2026-10-02T14:00:41.904Z → 2026-10-02T14:00:57.396Z · ok
+2026-10-02T15:54:06.678Z → 2026-10-02T15:54:22.326Z · ok
 
 Parameters: `{"edition": "Mid-2022 revised (Nov 2025) to mid-2024 (SAPE2024)", "file": "sapelsoasyoa20222024.xlsx", "header_row": 3, "sheet_template": "Mid-{year} LSOA 2021", "source": "S5"}`
 
@@ -244,13 +244,13 @@ Parameters: `{"edition": "Mid-2022 revised (Nov 2025) to mid-2024 (SAPE2024)", "
 
 ### 20. `rollforward.check_broad_age`
 
-2026-10-02T14:00:57.403Z → 2026-10-02T14:00:58.788Z · ok
+2026-10-02T15:54:22.331Z → 2026-10-02T15:54:23.750Z · ok
 
 - input **S5b!Mid-2024 LSOA 2021**: 35,672 rows · hash `b77a07033dca`
 
 ### 21. `rollforward.apply[cohort]`
 
-2026-10-02T14:00:58.788Z → 2026-10-02T14:01:01.353Z · ok
+2026-10-02T15:54:23.750Z → 2026-10-02T15:54:26.199Z · ok
 
 Parameters: `{"newborn_proxy_ages": [0], "shift_years": 3, "variant": "cohort"}`
 
@@ -260,7 +260,7 @@ Parameters: `{"newborn_proxy_ages": [0], "shift_years": 3, "variant": "cohort"}`
 
 ### 22. `rollforward.apply[static]`
 
-2026-10-02T14:01:01.565Z → 2026-10-02T14:01:04.100Z · ok
+2026-10-02T15:54:26.410Z → 2026-10-02T15:54:28.819Z · ok
 
 Parameters: `{"newborn_proxy_ages": [0], "shift_years": 3, "variant": "static"}`
 
@@ -270,7 +270,7 @@ Parameters: `{"newborn_proxy_ages": [0], "shift_years": 3, "variant": "static"}`
 
 ### 23. `rollforward.apply[cohort]`
 
-2026-10-02T14:01:04.101Z → 2026-10-02T14:01:06.644Z · ok
+2026-10-02T15:54:28.820Z → 2026-10-02T15:54:31.242Z · ok
 
 Parameters: `{"newborn_proxy_ages": [0, 1, 2, 3, 4], "shift_years": 3, "variant": "cohort"}`
 
@@ -280,7 +280,7 @@ Parameters: `{"newborn_proxy_ages": [0, 1, 2, 3, 4], "shift_years": 3, "variant"
 
 ### 24. `base.build_seed`
 
-2026-10-02T14:01:06.794Z → 2026-10-02T14:01:06.966Z · ok
+2026-10-02T15:54:31.378Z → 2026-10-02T15:54:31.544Z · ok
 
 Parameters: `{"max_iter": 1000, "seed_floor": 0.5, "seed_substitutes": {"E06000053": "E06000052"}, "sensitivity_floors": [0.01, 0.5, 2.0], "tolerance": 1e-06}`
 
@@ -299,7 +299,7 @@ Parameters: `{"max_iter": 1000, "seed_floor": 0.5, "seed_substitutes": {"E060000
 
 ### 25. `rollforward.sensitivity_fit[floor=0.01]`
 
-2026-10-02T14:01:08.261Z → 2026-10-02T14:01:08.405Z · ok
+2026-10-02T15:54:32.573Z → 2026-10-02T15:54:32.719Z · ok
 
 Parameters: `{"seed_floor": 0.01, "tol": 1e-06}`
 
@@ -311,7 +311,7 @@ Parameters: `{"seed_floor": 0.01, "tol": 1e-06}`
 
 ### 26. `rollforward.apply[cohort]`
 
-2026-10-02T14:01:08.407Z → 2026-10-02T14:01:08.469Z · ok
+2026-10-02T15:54:32.719Z → 2026-10-02T15:54:32.779Z · ok
 
 Parameters: `{"newborn_proxy_ages": [0], "shift_years": 3, "variant": "cohort"}`
 
@@ -321,7 +321,7 @@ Parameters: `{"newborn_proxy_ages": [0], "shift_years": 3, "variant": "cohort"}`
 
 ### 27. `rollforward.sensitivity_fit[floor=2]`
 
-2026-10-02T14:01:08.481Z → 2026-10-02T14:01:08.561Z · ok
+2026-10-02T15:54:32.790Z → 2026-10-02T15:54:32.872Z · ok
 
 Parameters: `{"seed_floor": 2.0, "tol": 1e-06}`
 
@@ -333,7 +333,7 @@ Parameters: `{"seed_floor": 2.0, "tol": 1e-06}`
 
 ### 28. `rollforward.apply[cohort]`
 
-2026-10-02T14:01:08.562Z → 2026-10-02T14:01:08.620Z · ok
+2026-10-02T15:54:32.873Z → 2026-10-02T15:54:32.932Z · ok
 
 Parameters: `{"newborn_proxy_ages": [0], "shift_years": 3, "variant": "cohort"}`
 
@@ -343,13 +343,13 @@ Parameters: `{"newborn_proxy_ages": [0], "shift_years": 3, "variant": "cohort"}`
 
 ### 29. `rollforward.write`
 
-2026-10-02T14:01:08.640Z → 2026-10-02T14:01:14.895Z · ok
+2026-10-02T15:54:32.952Z → 2026-10-02T15:54:39.157Z · ok
 
 - output **estimates**: 116,724,790 rows · hash `a9fd10bff81b` · population 58,620,101 (F 29,895,762, M 28,724,339)
 
 ### 30. `deprivation.load_iod`
 
-2026-10-02T14:01:15.629Z → 2026-10-02T14:01:15.728Z · ok
+2026-10-02T15:54:39.739Z → 2026-10-02T15:54:39.830Z · ok
 
 Parameters: `{"core20_max_decile": 2, "edition": "IoD 2025", "file": "File_7_IoD2025_All_Ranks_Scores_Deciles_Population_Denominators.csv", "local_quintile": {"enabled": true, "within": "icb"}, "source": "S8"}`
 
@@ -358,7 +358,7 @@ Parameters: `{"core20_max_decile": 2, "edition": "IoD 2025", "file": "File_7_IoD
 
 ### 31. `deprivation.derive`
 
-2026-10-02T14:01:15.736Z → 2026-10-02T14:01:15.771Z · ok
+2026-10-02T15:54:39.838Z → 2026-10-02T15:54:39.872Z · ok
 
 Parameters: `{"core20_max_decile": 2, "edition": "IoD 2025", "file": "File_7_IoD2025_All_Ranks_Scores_Deciles_Population_Denominators.csv", "local_quintile": {"enabled": true, "within": "icb"}, "source": "S8"}`
 
@@ -367,7 +367,7 @@ Parameters: `{"core20_max_decile": 2, "edition": "IoD 2025", "file": "File_7_IoD
 
 ### 32. `catchments.load_ohid`
 
-2026-10-02T14:01:16.497Z → 2026-10-02T14:01:28.592Z · ok
+2026-10-02T15:54:40.521Z → 2026-10-02T15:54:52.529Z · ok
 
 Parameters: `{"admission_type": "All admissions", "catchment_year": 2024, "file": "nhs-acute-hospital-trust-catchment-populations-data_tables-april-2026.ods", "source": "S9"}`
 
@@ -379,21 +379,21 @@ Parameters: `{"admission_type": "All admissions", "catchment_year": 2024, "file"
 
 ### 33. `catchments.build_bridge`
 
-2026-10-02T14:01:28.613Z → 2026-10-02T14:01:28.754Z · ok
+2026-10-02T15:54:52.549Z → 2026-10-02T15:54:52.688Z · ok
 
 - input **ohid_t2**: 60,462 rows · hash `5ffe4a8f8061`
 - output **bridge_lsoa_trust**: 337,059 rows · hash `e25b5fad9d4b`
 
 ### 34. `outputs.validate`
 
-2026-10-02T14:01:29.735Z → 2026-10-02T14:01:30.325Z · ok
+2026-10-02T15:54:53.638Z → 2026-10-02T15:54:54.165Z · ok
 
 - input **estimates**: 116,724,790 rows · hash `a9fd10bff81b` · population 58,620,101 (F 29,895,762, M 28,724,339)
 - note: fact rows 116,724,790; dim_lsoa 33755; bridge 337059
 
 ### 35. `outputs.write`
 
-2026-10-02T14:01:30.325Z → 2026-10-02T14:01:54.437Z · ok
+2026-10-02T15:54:54.165Z → 2026-10-02T15:55:18.242Z · ok
 
 - output **fact_population**: 116,724,790 rows · hash `a9fd10bff81b` · population 58,620,101 (F 29,895,762, M 28,724,339)
 - output **dim_lsoa**: 33,755 rows · hash `f295b12a3335`

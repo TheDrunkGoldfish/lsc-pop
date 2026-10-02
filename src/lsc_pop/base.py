@@ -53,6 +53,70 @@ def _classes(cfg: Config) -> pd.DataFrame:
 # --------------------------------------------------------------------------------------------
 
 
+def seed_array(
+    cfg: Config,
+    seed91: pd.DataFrame,
+    seed23: pd.DataFrame,
+    blocked: pd.DataFrame,
+    lookup: pd.DataFrame,
+    note=lambda text: None,
+) -> tuple[np.ndarray, list[str], pd.DataFrame]:
+    """Pure seed construction (ADR-0011): (seed[ltla, sex, eth, age] without floor, ltlas, sources).
+
+    Shared by the local stage (``build_seed``) and the Databricks pipeline.
+    """
+    n_age = cfg.age.max_age + 1
+    ltlas = sorted(lookup["ltla21cd"].unique())
+    li = {c: i for i, c in enumerate(ltlas)}
+    si = {s: i for i, s in enumerate(SEXES)}
+    seed = np.full((len(ltlas), 2, len(ETH), n_age), np.nan)
+    source = {}
+    idx = (
+        seed91["ltla21cd"].map(li).to_numpy(),
+        seed91["sex"].map(si).to_numpy(),
+        seed91["eth19"].to_numpy() - 1,
+        seed91["age"].to_numpy(),
+    )
+    seed[idx] = seed91["population"].to_numpy(float)
+    for c in seed91["ltla21cd"].unique():
+        source[c] = "age91"
+
+    blocked91 = set(blocked.loc[blocked["classification"] == "age_91a", "ltla21cd"])
+    blocked23 = set(blocked.loc[blocked["classification"] == "age_23a", "ltla21cd"])
+    region = lookup.drop_duplicates("ltla21cd").set_index("ltla21cd")["rgn21cd"]
+    a2k = age_to_code(_classes(cfg), "age_23a", cfg.age.max_age).to_numpy()
+
+    for c in sorted(blocked91 - blocked23):
+        rg = region[c]
+        peers = [li[p] for p in region.index[region == rg] if source.get(p) == "age91"]
+        shape = seed[peers].sum(0)  # (sex, eth, age) regional single-year counts
+        k_tot = np.zeros(shape.shape[:2] + (a2k.max() + 1,))
+        np.add.at(k_tot, (slice(None), slice(None), a2k), shape)
+        denom = k_tot[:, :, a2k]
+        width = np.bincount(a2k)[a2k]
+        within = np.where(denom > 0, shape / np.where(denom > 0, denom, 1), 1.0 / width)
+        own = seed23[seed23["ltla21cd"] == c]
+        c23 = np.zeros((2, len(ETH), a2k.max() + 1))
+        c23[own["sex"].map(si), own["eth19"] - 1, own["age23"]] = own["population"]
+        seed[li[c]] = c23[:, :, a2k] * within
+        source[c] = "age23_region_split"
+        note(f"{c}: 23-category counts split by region {rg} single-year shape")
+
+    for c in sorted(blocked91 & blocked23):
+        sub = cfg.ipf.seed_substitutes.get(c)
+        if sub is None or source.get(sub) is None:
+            raise ValueError(f"LTLA {c} is blocked at all fine ages; set ipf.seed_substitutes")
+        seed[li[c]] = seed[li[sub]]
+        source[c] = f"substitute:{sub}"
+        note(f"{c}: blocked at 91a and 23a; uses seed of {sub}")
+
+    missing = [c for c in ltlas if c not in source]
+    if missing or np.isnan(seed).any():
+        raise ValueError(f"seed incomplete for LTLAs {missing[:5]}")
+    src = pd.DataFrame({"ltla21cd": ltlas, "seed_source": [source[c] for c in ltlas]})
+    return seed, ltlas, src
+
+
 def build_seed(
     ctx: RunContext,
     seed91: pd.DataFrame,
@@ -60,68 +124,24 @@ def build_seed(
     blocked: pd.DataFrame,
     lookup: pd.DataFrame,
 ) -> tuple[np.ndarray, list[str], pd.DataFrame]:
-    """Return (seed[ltla, sex, eth, age] without floor, ltla codes, seed_source table)."""
+    """Logged wrapper around :func:`seed_array` (local pipeline)."""
     cfg = ctx.cfg
-    n_age = cfg.age.max_age + 1
-    ltlas = sorted(lookup["ltla21cd"].unique())
-    li = {c: i for i, c in enumerate(ltlas)}
-    si = {s: i for i, s in enumerate(SEXES)}
-    seed = np.full((len(ltlas), 2, len(ETH), n_age), np.nan)
-    source = {}
-
     with logged_step(ctx, "base.build_seed", params=cfg.ipf.model_dump()) as step:
         step.input("seed_age91", seed91)
         step.input("seed_age23", seed23)
-        idx = (
-            seed91["ltla21cd"].map(li).to_numpy(),
-            seed91["sex"].map(si).to_numpy(),
-            seed91["eth19"].to_numpy() - 1,
-            seed91["age"].to_numpy(),
-        )
-        seed[idx] = seed91["population"].to_numpy(float)
-        for c in seed91["ltla21cd"].unique():
-            source[c] = "age91"
-
-        blocked91 = set(blocked.loc[blocked["classification"] == "age_91a", "ltla21cd"])
-        blocked23 = set(blocked.loc[blocked["classification"] == "age_23a", "ltla21cd"])
-        region = lookup.drop_duplicates("ltla21cd").set_index("ltla21cd")["rgn21cd"]
-        a2k = age_to_code(_classes(cfg), "age_23a", cfg.age.max_age).to_numpy()
-
-        for c in sorted(blocked91 - blocked23):
-            rg = region[c]
-            peers = [li[p] for p in region.index[region == rg] if source.get(p) == "age91"]
-            shape = seed[peers].sum(0)  # (sex, eth, age) regional single-year counts
-            k_tot = np.zeros(shape.shape[:2] + (a2k.max() + 1,))
-            np.add.at(k_tot, (slice(None), slice(None), a2k), shape)
-            denom = k_tot[:, :, a2k]
-            width = np.bincount(a2k)[a2k]
-            within = np.where(denom > 0, shape / np.where(denom > 0, denom, 1), 1.0 / width)
-            own = seed23[seed23["ltla21cd"] == c]
-            c23 = np.zeros((2, len(ETH), a2k.max() + 1))
-            c23[own["sex"].map(si), own["eth19"] - 1, own["age23"]] = own["population"]
-            seed[li[c]] = c23[:, :, a2k] * within
-            source[c] = "age23_region_split"
-            step.note(f"{c}: 23-category counts split by region {rg} single-year shape")
-
-        for c in sorted(blocked91 & blocked23):
-            sub = cfg.ipf.seed_substitutes.get(c)
-            if sub is None or source.get(sub) is None:
-                raise ValueError(f"LTLA {c} is blocked at all fine ages; set ipf.seed_substitutes")
-            seed[li[c]] = seed[li[sub]]
-            source[c] = f"substitute:{sub}"
-            step.note(f"{c}: blocked at 91a and 23a; uses seed of {sub}")
-
-        missing = [c for c in ltlas if c not in source]
-        if missing or np.isnan(seed).any():
-            raise ValueError(f"seed incomplete for LTLAs {missing[:5]}")
-        src = pd.DataFrame({"ltla21cd": ltlas, "seed_source": [source[c] for c in ltlas]})
+        seed, ltlas, src = seed_array(cfg, seed91, seed23, blocked, lookup, note=step.note)
         step.note(json.dumps(src["seed_source"].str.split(":").str[0].value_counts().to_dict()))
         step.output_cube(
             "seed",
             Cube(
                 seed,
                 ("ltla21cd", "sex", "eth19", "age"),
-                {"ltla21cd": ltlas, "sex": SEXES, "eth19": ETH, "age": list(range(n_age))},
+                {
+                    "ltla21cd": ltlas,
+                    "sex": SEXES,
+                    "eth19": ETH,
+                    "age": list(range(cfg.age.max_age + 1)),
+                },
             ),
         )
     return seed, ltlas, src
@@ -148,6 +168,46 @@ def margin_arrays(cfg: Config, margins: pd.DataFrame, lsoas: list[str]):
     return eth, age
 
 
+def fit_arrays(
+    cfg: Config,
+    seed: np.ndarray,
+    ltla_of_lsoa: np.ndarray,
+    eth_m: np.ndarray,
+    age_m: np.ndarray,
+    floor: float,
+) -> tuple[np.ndarray, dict]:
+    """Pure IPF of every LSOA × sex × band (ADR-0003). Returns base[l, s, age, eth], diagnostics.
+
+    Tables are independent, so any subset of LSOAs (e.g. one LTLA on a Spark worker) can be
+    fitted separately and gives the same result to within the IPF tolerance.
+    """
+    n_l = eth_m.shape[0]
+    a2b = age_to_code(_classes(cfg), "rm032_5", cfg.age.max_age).to_numpy()
+    base = np.zeros((n_l, 2, cfg.age.max_age + 1, len(ETH)))
+    diag = {}
+    for b in range(1, 6):
+        ages = np.flatnonzero(a2b == b)
+        s = seed[:, :, :, ages][ltla_of_lsoa] + floor  # (L, 2, E, nb)
+        n = n_l * 2
+        res = ipf_fit(
+            s.reshape(n, len(ETH), len(ages)),
+            eth_m[:, :, b - 1, :].reshape(n, len(ETH)),
+            age_m[:, :, ages].reshape(n, len(ages)),
+            tol=cfg.ipf.tolerance,
+            max_iter=cfg.ipf.max_iter,
+        )
+        base[:, :, ages, :] = res.x.reshape(n_l, 2, len(ETH), len(ages)).transpose(0, 1, 3, 2)
+        diag[b] = {
+            "tables": n,
+            "iter_p50": float(np.median(res.iterations)),
+            "iter_p95": float(np.percentile(res.iterations, 95)),
+            "iter_max": int(res.n_iter),
+            "max_row_error": float(res.max_row_error.max()),
+            "max_col_error": float(res.max_col_error.max()),
+        }
+    return base, diag
+
+
 def fit_base(
     ctx: RunContext,
     seed: np.ndarray,
@@ -157,34 +217,12 @@ def fit_base(
     floor: float,
     label: str = "base.fit",
 ) -> tuple[np.ndarray, dict]:
-    """IPF every LSOA × sex × band. Returns base[l, s, age, eth] and per-band diagnostics."""
+    """Logged wrapper around :func:`fit_arrays` (local pipeline)."""
     cfg = ctx.cfg
-    n_l = eth_m.shape[0]
-    a2b = age_to_code(_classes(cfg), "rm032_5", cfg.age.max_age).to_numpy()
-    base = np.zeros((n_l, 2, cfg.age.max_age + 1, len(ETH)))
-    diag = {}
     with logged_step(ctx, label, params={"seed_floor": floor, "tol": cfg.ipf.tolerance}) as step:
-        for b in range(1, 6):
-            ages = np.flatnonzero(a2b == b)
-            s = seed[:, :, :, ages][ltla_of_lsoa] + floor  # (L, 2, E, nb)
-            n = n_l * 2
-            res = ipf_fit(
-                s.reshape(n, len(ETH), len(ages)),
-                eth_m[:, :, b - 1, :].reshape(n, len(ETH)),
-                age_m[:, :, ages].reshape(n, len(ages)),
-                tol=cfg.ipf.tolerance,
-                max_iter=cfg.ipf.max_iter,
-            )
-            base[:, :, ages, :] = res.x.reshape(n_l, 2, len(ETH), len(ages)).transpose(0, 1, 3, 2)
-            diag[b] = {
-                "tables": n,
-                "iter_p50": float(np.median(res.iterations)),
-                "iter_p95": float(np.percentile(res.iterations, 95)),
-                "iter_max": int(res.n_iter),
-                "max_row_error": float(res.max_row_error.max()),
-                "max_col_error": float(res.max_col_error.max()),
-            }
-            step.note(f"band {b}: {json.dumps(diag[b])}")
+        base, diag = fit_arrays(cfg, seed, ltla_of_lsoa, eth_m, age_m, floor)
+        for b, d in diag.items():
+            step.note(f"band {b}: {json.dumps(d)}")
     return base, diag
 
 
