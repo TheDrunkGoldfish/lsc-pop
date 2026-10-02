@@ -8,10 +8,14 @@ ethnicity_diagnostic) and ``audit.ohid_checks`` (CAT-07 to CAT-11). Fails if a h
 from __future__ import annotations
 
 import argparse
+import inspect
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "pipeline"))
+# Databricks runs spark_python_task files via exec(), so __file__ isn't defined; the code
+# object still carries the file's path.
+_HERE = os.path.dirname(os.path.abspath(inspect.currentframe().f_code.co_filename))
+sys.path.insert(0, os.path.join(_HERE, "pipeline"))
 
 from lsc_pop_dbx.audit import write_ohid_tables  # noqa: E402
 from lsc_pop_dbx.params import Names  # noqa: E402

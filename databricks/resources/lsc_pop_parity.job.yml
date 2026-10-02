@@ -7,6 +7,7 @@ resources:
       max_concurrent_runs: 1
       tasks:
         - task_key: parity
+          max_retries: 0           # fail fast: no automatic retries of deterministic failures
           environment_key: lsc_pop
           spark_python_task:
             python_file: ../src/parity_task.py

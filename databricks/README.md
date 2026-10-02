@@ -8,12 +8,13 @@ statistics.**
 ```
 Lakeflow Job  lsc_pop_<target>
  ├─ ingest    Python wheel task   download (or verify) raw files into the Volume; manifest SHA-256 checks
- └─ pipeline  Lakeflow Declarative Pipeline (serverless)
+ ├─ pipeline  Lakeflow Declarative Pipeline (serverless)
       bronze  Python  Auto Loader streaming tables (Nomis CSV, ONS JSON) + parsed xlsx/ODS/zip/lookups
       silver  SQL     geography, tidy Census, margin reconciliation, IoD, OHID shares, params/mappings
       model   Python  2021 base: IPF distributed by LTLA (applyInPandas, same numpy code as local)
       gold    SQL     roll-forward + star schema: fact_population, dim_lsoa/ethnicity/age/trust, bridge_lsoa_trust
-      audit   SQL+Py  checks (expectations), validation, sensitivity, share fallback, OHID comparisons, run metadata
+      audit   SQL+Py  checks (expectations), validation, sensitivity, share fallback, run metadata
+ └─ audit     Python task         OHID trust comparisons -> audit.ohid_comparison_*, audit.ohid_checks
 ```
 
 ## 1. Prerequisites (one-off)
@@ -105,6 +106,20 @@ every file's SHA-256 against the committed manifest, so a truncated or altered u
 | Pipeline UI → **Data quality** / Catalog Explorer → **Lineage** | Expectation results per table; lineage from raw file to gold |
 
 Example queries are in `../src/lsc_pop/templates/schema.sql`. Use `<catalog>.gold.` as the table prefix.
+
+### Things to know about runs
+
+- **No automatic retries.** Job tasks have `max_retries: 0`, and the pipeline has
+  `pipelines.numUpdateRetryAttempts: 0`. Failures here are deterministic (code or data), so a retry only repeats them
+  and spends compute. Fix the cause, redeploy, then rerun, or repair just the failed task:
+  `databricks jobs repair-run --json '{"run_id": <id>, "rerun_tasks": ["<task>"]}'`.
+- **Runs aren't code snapshots.** A run fixes its task list and parameters when it starts, but each task reads its
+  code (workspace files, the pipeline source, the wheel path) when it starts. Deploying while a run is in progress can
+  therefore mix code versions within one run. `audit.run_metadata.code_hash` records what the pipeline actually used.
+  Don't deploy to a target with a run in progress. `test` and `prod` keep the bundle's deployment lock; `dev` mode
+  turns it off.
+- **Pipeline dataset functions must be lazy.** Databricks calls them while analysing the graph, before upstream tables
+  have data. The local harness fails any dataset function that runs a Spark job while defining its result.
 
 ## 6. Parity with the local reference (optional)
 

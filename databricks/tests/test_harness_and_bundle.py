@@ -123,3 +123,21 @@ def test_harness_rejects_eager_dataset_functions(spark, tmp_path):
         "    return spark.range(3)\n"
     )
     pl.run_python(f)
+
+
+@pytest.mark.parametrize("script", ["audit_task.py", "parity_task.py"])
+def test_task_scripts_run_without___file__(script, capsys):
+    """Regression: Databricks executes spark_python_task files via exec(), without __file__."""
+    import sys as _sys
+
+    path = ROOT / "src" / script
+    g = {"__name__": "__main__"}
+    old = _sys.argv
+    _sys.argv = [str(path), "--help"]
+    try:
+        with pytest.raises(SystemExit) as exc:
+            exec(compile(path.read_text(), str(path), "exec"), g)
+        assert exc.value.code == 0
+    finally:
+        _sys.argv = old
+    assert g["_HERE"] == str(path.parent)

@@ -11,11 +11,15 @@ table fails parity. Results are printed and written to ``<catalog>.<schema-audit
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "pipeline"))
+# Databricks runs spark_python_task files via exec(), so __file__ isn't defined; the code
+# object still carries the file's path.
+_HERE = os.path.dirname(os.path.abspath(inspect.currentframe().f_code.co_filename))
+sys.path.insert(0, os.path.join(_HERE, "pipeline"))
 
 from lsc_pop_dbx.parity import compare_all  # noqa: E402
 from pyspark.sql import SparkSession  # noqa: E402

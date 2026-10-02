@@ -17,6 +17,7 @@ resources:
         dependencies:
           - ../../dist/*.whl                  # lsc-pop wheel (config, mappings, manifest bundled)
       configuration:
+        pipelines.numUpdateRetryAttempts: "0"   # fail fast: don't retry failed updates automatically
         lsc_pop.catalog: ${var.catalog}
         lsc_pop.schema_bronze: ${var.schema_bronze}
         lsc_pop.schema_silver: ${var.schema_silver}

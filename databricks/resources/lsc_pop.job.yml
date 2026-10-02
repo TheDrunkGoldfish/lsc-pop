@@ -12,6 +12,7 @@ resources:
         pause_status: PAUSED
       tasks:
         - task_key: ingest
+          max_retries: 0           # fail fast: no automatic retries of deterministic failures
           environment_key: lsc_pop
           python_wheel_task:
             package_name: lsc_pop
@@ -25,12 +26,14 @@ resources:
               - --manifest
               - ${var.volume_path}/manifest.json
         - task_key: pipeline
+          max_retries: 0           # fail fast: no automatic retries of deterministic failures
           depends_on:
             - task_key: ingest
           pipeline_task:
             pipeline_id: ${resources.pipelines.lsc_pop_pipeline.id}
             full_refresh: false
         - task_key: audit
+          max_retries: 0           # fail fast: no automatic retries of deterministic failures
           depends_on:
             - task_key: pipeline
           environment_key: lsc_pop
