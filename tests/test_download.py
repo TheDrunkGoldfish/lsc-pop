@@ -314,3 +314,32 @@ def test_ons_api_error_fails(project_copy):
 
     with pytest.raises(dl.FetchError, match="too large"):
         dl.download(cfg, session=FakeSession(body), log=lambda *_: None)
+
+
+def test_verify_only_accepts_placed_files_and_rejects_bad_ones(project_copy):
+    cfg = _registry(project_copy)
+    dl.download(cfg, session=FakeSession({"https://example.test/t.csv": BODY}), log=lambda *_: None)
+    dl.verify(cfg, log=lambda *_: None)  # passes
+    raw = project_copy / "data" / "raw" / "S99" / "t.csv"
+    raw.chmod(0o644)
+    raw.write_bytes(b"different")
+    with pytest.raises(dl.RawDataError, match="SHA-256 differs"):
+        dl.verify(cfg, log=lambda *_: None)
+    raw.unlink()
+    with pytest.raises(dl.RawDataError, match="missing"):
+        dl.verify(cfg, log=lambda *_: None)
+
+
+def test_seed_manifest_copies_reference_once(project_copy, tmp_path):
+    from lsc_pop.config import with_paths
+
+    cfg = _registry(project_copy)
+    ref = project_copy / "data" / "manifest.json"
+    ref.parent.mkdir(parents=True, exist_ok=True)
+    ref.write_text('{"schema_version": 1, "files": []}')
+    moved = with_paths(cfg, manifest=tmp_path / "vol" / "manifest.json")
+    target = dl.seed_manifest(moved, ref)
+    assert target.read_text() == ref.read_text()
+    target.write_text("changed")
+    dl.seed_manifest(moved, ref)
+    assert target.read_text() == "changed"  # never overwritten

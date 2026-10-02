@@ -247,9 +247,14 @@ class Config(_Strict):
         }
 
     def config_hash(self) -> str:
-        """SHA-256 over the canonical JSON of the config plus referenced mapping file contents."""
+        """SHA-256 over the canonical JSON of the config plus referenced mapping file contents.
+
+        ``paths`` is excluded: where files live doesn't change the numbers, and excluding it lets a
+        local run and a Databricks run (paths under /Volumes) share a config hash (ADR-0023).
+        """
         h = hashlib.sha256()
-        canonical = json.dumps(self.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+        payload = self.model_dump(mode="json", exclude={"paths"})
+        canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         h.update(canonical.encode())
         for key, path in sorted(self.mapping_files().items()):
             h.update(f"\n{key}\n".encode())
@@ -257,9 +262,35 @@ class Config(_Strict):
         return h.hexdigest()
 
 
-def load_config(path: Path | str = DEFAULT_CONFIG_PATH) -> Config:
+def with_paths(cfg: Config, **paths: Path | str) -> Config:
+    """Copy of ``cfg`` with some ``paths`` replaced (e.g. raw=/Volumes/...). Hash unaffected."""
+    new = cfg.model_copy(
+        update={"paths": cfg.paths.model_copy(update={k: Path(v) for k, v in paths.items()})}
+    )
+    new._root = cfg.root
+    return new
+
+
+BUNDLED_DIR = Path(__file__).resolve().parent / "_bundled"
+
+
+def default_config_path() -> Path:
+    """The repo's config when running from a checkout; the copy bundled in the wheel otherwise.
+
+    The wheel ships ``config/`` and ``data/manifest.json`` under ``lsc_pop/_bundled/`` so an
+    installed package (e.g. on Databricks) loads exactly the same config, mappings and manifest.
+    """
+    if DEFAULT_CONFIG_PATH.is_file():
+        return DEFAULT_CONFIG_PATH
+    bundled = BUNDLED_DIR / "config" / "config.yaml"
+    if bundled.is_file():
+        return bundled
+    raise FileNotFoundError("no config/config.yaml in the checkout or the installed package")
+
+
+def load_config(path: Path | str | None = None) -> Config:
     """Load and validate a config file. Raises ``pydantic.ValidationError`` on bad input."""
-    path = Path(path).resolve()
+    path = Path(path if path is not None else default_config_path()).resolve()
     raw = yaml.safe_load(path.read_text()) or {}
     cfg = Config.model_validate(raw)
     cfg._root = path.parent.parent

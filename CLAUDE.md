@@ -40,5 +40,8 @@ kept) → `outputs/<run_id>/` → `docs/` (ADRs in `docs/decisions/`).
 - `uv run lsc-pop run` runs every stage (~2 min once data is downloaded). Then `uv run lsc-pop docs` regenerates
   `transformations.md`, `validation_report.md`, `sensitivity.md`, `data_sources.md` and figures.
 - New releases or geography changes: follow `docs/updating.md`.
+- Databricks implementation in `databricks/` (ADR-0022). **Method changes must be made in both** `src/lsc_pop/` and
+  `databricks/src/pipeline/`. Test with `uv run --group databricks pytest databricks/tests` (needs Java 17; Homebrew
+  `openjdk@17`). Files in `transformations/` run in numeric-prefix order in the local harness.
 - After changing CLI commands or options, run `uv run lsc-pop docs` (regenerates the README command reference;
   `tests/test_docs.py` fails otherwise). Define new acronyms in `docs/glossary.md`.

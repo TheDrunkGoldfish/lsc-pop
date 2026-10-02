@@ -28,3 +28,6 @@ Copy `template.md` to the next number. Never edit an accepted ADR's decision: su
 | [0019](0019-trust-catchment-apportionment.md) | Trust catchments: MSOA→LSOA; published + unassigned, rescaled column | accepted |
 | [0020](0020-drop-variant-column.md) | Drop the constant variant column from fact_population | accepted |
 | [0021](0021-adopt-git-public-repository.md) | Adopt git; public GitHub repo; MIT code + OGL docs | accepted |
+| [0022](0022-databricks-native-implementation.md) | Databricks-native implementation alongside the local pipeline | accepted |
+| [0023](0023-config-hash-excludes-paths.md) | Config hash excludes `paths` | accepted |
+| [0024](0024-databricks-parity-tolerances.md) | Parity tolerances (Databricks vs local) | accepted |

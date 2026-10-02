@@ -4,6 +4,30 @@ All notable changes to the pipeline and its outputs. Changes that affect the num
 
 ## [Unreleased]
 
+### Phase 9: Databricks-native implementation (2026-10-02)
+- `databricks/`: a Databricks Asset Bundle with dev, test and prod targets. Catalog, schemas and Volume are
+  variables pointing at existing objects. It defines a Lakeflow Job (ingest, then pipeline) and a serverless Lakeflow
+  Declarative Pipeline: bronze in Python (Auto Loader), silver in SQL, IPF in Python (`applyInPandas`), gold in SQL,
+  and audit with checks as expectations. There's also an optional parity job (ADR-0022, ADR-0024).
+- Core: the config hash excludes `paths` (ADR-0023; run ids' config part changes once, data unchanged). The wheel
+  bundles `config/` and `data/manifest.json`. `lsc-pop download --raw-dir/--manifest/--mode verify` was added. Pure
+  `base.seed_array` / `base.fit_arrays` were split out of the logged stage functions.
+- Local test harness that runs the real pipeline files in local Spark. Synthetic end-to-end parity test (both
+  implementations on synthetic raw files in real formats). Bundle YAML validated against Databricks' JSON schema.
+- Verified on the full real data in local Spark: gold parity within 6.4e-7 persons, dims identical, 34/34 checks
+  pass (1 expected soft warning).
+- CI: new `databricks` job (Java 17 + local Spark) and `pandas-2` compatibility job.
+- First workspace deployment (Databricks Free Edition, dev): the job ran ingest (verify mode), then the pipeline,
+  then the audit task. 34/34 checks pass (one expected soft warning). Workspace parity vs the local reference passes
+  for all 6 tables: fact within 6.4e-7 persons, dims and bridge identical. Fixes found on the workspace:
+  - the IPF seed and model are now lazy, built per region and per LTLA inside Spark, because Databricks analyses
+    datasets before upstream data exists;
+  - the OHID comparison moved to a post-pipeline audit job task;
+  - `lsc-pop-task` entry point, because Databricks fails wheel tasks on `SystemExit(0)`;
+  - task scripts no longer rely on `__file__`;
+  - automatic retries are disabled.
+  The harness now rejects eager dataset functions.
+
 ### 2026-10-02: run ids with code hash; command reference; glossary
 - Run ids are now `<UTC time>_<config hash[:8]>_<code hash[:8]>`, so code changes are visible in the folder name.
 - README **Command reference**: every command, option and stage, generated from the CLI by `lsc-pop docs`. A test

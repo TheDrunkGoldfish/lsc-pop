@@ -7,7 +7,7 @@ from pathlib import Path
 
 import typer
 
-from lsc_pop.config import DEFAULT_CONFIG_PATH, load_config
+from lsc_pop.config import load_config
 
 app = typer.Typer(
     help="Modelled LSOA population estimates (sex x age x ethnicity). Not official statistics.",
@@ -55,7 +55,10 @@ STAGES: list[Stage] = [
 STAGE_KEYS = [s.key for s in STAGES]
 
 ConfigOpt = typer.Option(
-    DEFAULT_CONFIG_PATH, "--config", "-c", help="Config file (must sit in a repo's config/ folder)."
+    None,
+    "--config",
+    "-c",
+    help="Config file (must sit in a config/ folder). Default: the repo's config/config.yaml.",
 )
 
 
@@ -217,17 +220,46 @@ def download(
             "(-s S5 -s S7). Default: all enabled sources."
         ),
     ),
+    raw_dir: Path = typer.Option(
+        None,
+        "--raw-dir",
+        help="Put raw files here instead of data/raw/ (e.g. a /Volumes/... path).",
+    ),
+    manifest: Path = typer.Option(
+        None,
+        "--manifest",
+        help="Manifest file to use (seeded from the committed data/manifest.json if missing).",
+    ),
+    mode: str = typer.Option(
+        "download",
+        "--mode",
+        help="download: fetch missing files. verify: fetch nothing; check files already in place "
+        "(e.g. uploaded to a Volume) against the manifest.",
+    ),
     config: Path = ConfigOpt,
 ) -> None:
     """Download raw source files into data/raw/ and record them in data/manifest.json.
 
     Files already present (with a matching SHA-256 hash) are skipped. Raw files are read-only
-    and never overwritten. A changed or tampered file stops with an error.
+    and never overwritten. A changed or tampered file stops with an error. With --mode verify,
+    nothing is downloaded and every file must already be in place (e.g. uploaded to a Volume).
     """
+    from lsc_pop.config import with_paths
     from lsc_pop.download import download as do_download
+    from lsc_pop.download import seed_manifest, verify
 
     cfg = load_config(config)
-    do_download(cfg, source_ids=source or None, log=typer.echo)
+    reference = cfg.resolve(cfg.paths.manifest)
+    overrides = {k: v for k, v in (("raw", raw_dir), ("manifest", manifest)) if v is not None}
+    if overrides:
+        cfg = with_paths(cfg, **overrides)
+        seed_manifest(cfg, reference)
+    if mode not in ("download", "verify"):
+        raise typer.BadParameter("--mode must be 'download' or 'verify'")
+    if mode == "verify":
+        verify(cfg, source_ids=source or None, log=typer.echo)
+    else:
+        do_download(cfg, source_ids=source or None, log=typer.echo)
 
 
 @app.command()
@@ -326,6 +358,19 @@ def compare_runs_cmd(
     for t in res["differing_tables"]:
         typer.echo(f"  differs: {t}")
     raise typer.Exit(code=0 if res["identical"] else 1)
+
+
+def task_main(argv: list[str] | None = None) -> None:
+    """Entry point for Databricks Python wheel tasks (console script ``lsc-pop-task``).
+
+    Same commands as ``lsc-pop``, but it returns normally on success: Databricks treats any
+    ``SystemExit`` (even code 0, which Typer always raises) as a failed task.
+    """
+    try:
+        app(args=argv)
+    except SystemExit as e:
+        if e.code not in (0, None):
+            raise RuntimeError(f"lsc-pop exited with code {e.code}") from None
 
 
 if __name__ == "__main__":

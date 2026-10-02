@@ -1,0 +1,23 @@
+name: Question about the data or method
+description: Ask about the estimates, their assumptions, or how to use them.
+labels: [question]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: Check docs/methodology.md, docs/limitations.md and docs/glossary.md first. They may already answer it.
+    validations:
+      required: true
+  - type: input
+    id: geography
+    attributes:
+      label: Geography / organisation (optional)
+      description: e.g. an ICB, local authority or trust code.
+  - type: checkboxes
+    id: data
+    attributes:
+      label: Data safety
+      options:
+        - label: This question contains no patient-level or other sensitive data.
+          required: true

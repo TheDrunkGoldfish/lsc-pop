@@ -1,0 +1,29 @@
+# Lakeflow Declarative Pipeline: bronze (Python) -> silver (SQL) -> IPF model (Python) -> gold (SQL)
+# -> audit/checks (SQL + Python). Serverless, triggered, multi-schema publishing (ADR-0022).
+resources:
+  pipelines:
+    lsc_pop_pipeline:
+      name: lsc_pop_${bundle.target}
+      catalog: ${var.catalog}
+      schema: ${var.schema_silver}
+      serverless: true
+      continuous: false
+      channel: CURRENT
+      root_path: ../src/pipeline            # added to sys.path: makes lsc_pop_dbx importable
+      libraries:
+        - glob:
+            include: ../src/pipeline/transformations/**
+      environment:
+        dependencies:
+          - ../../dist/*.whl                  # lsc-pop wheel (config, mappings, manifest bundled)
+      configuration:
+        pipelines.numUpdateRetryAttempts: "0"   # fail fast: don't retry failed updates automatically
+        lsc_pop.catalog: ${var.catalog}
+        lsc_pop.schema_bronze: ${var.schema_bronze}
+        lsc_pop.schema_silver: ${var.schema_silver}
+        lsc_pop.schema_gold: ${var.schema_gold}
+        lsc_pop.schema_audit: ${var.schema_audit}
+        lsc_pop.raw_dir: ${var.volume_path}/raw
+        lsc_pop.manifest_path: ${var.volume_path}/manifest.json
+        lsc_pop.bundle_target: ${bundle.target}
+        lsc_pop.git_commit: ${bundle.git.commit}

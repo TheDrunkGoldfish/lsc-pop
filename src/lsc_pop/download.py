@@ -29,6 +29,7 @@ Raw data is immutable (brief §3.6):
 
 from __future__ import annotations
 
+import contextlib
 import csv
 import gzip
 import hashlib
@@ -392,7 +393,8 @@ def fetch_file(
                 "then remove the manifest entry deliberately."
             )
         os.replace(tmp, dest)
-        dest.chmod(0o444)  # raw data is read-only once landed
+        with contextlib.suppress(OSError):  # e.g. Unity Catalog Volumes don't support chmod
+            dest.chmod(0o444)  # raw data is read-only once landed
     finally:
         tmp.unlink(missing_ok=True)
 
@@ -411,6 +413,44 @@ def fetch_file(
     }
     record_download(manifest, new_entry)
     return "downloaded", new_entry
+
+
+def verify(cfg: Config, source_ids: list[str] | None = None, log: Any = print) -> dict[str, Any]:
+    """Check raw files that were placed by hand (e.g. uploaded to a Volume) against the manifest.
+
+    Nothing is downloaded. Every enabled source file must exist and match its manifest SHA-256;
+    otherwise ``RawDataError`` lists what is missing or different.
+    """
+    registry = load_sources(cfg)
+    manifest = load_manifest(cfg.resolve(cfg.paths.manifest))
+    selected = [registry.get(i) for i in source_ids] if source_ids else registry.sources
+    problems = []
+    for source in selected:
+        if not source.enabled:
+            continue
+        for sf in source.files:
+            dest = cfg.resolve(cfg.paths.raw) / source.id / sf.name
+            entry = manifest_entry(manifest, source.id, sf.name)
+            if entry is None:
+                problems.append(f"{source.id}/{sf.name}: not in manifest")
+            elif not dest.is_file():
+                problems.append(f"{source.id}/{sf.name}: missing at {dest}")
+            elif _sha256(dest) != entry["sha256"]:
+                problems.append(f"{source.id}/{sf.name}: SHA-256 differs from manifest")
+            else:
+                log(f"  {source.id:<4} {sf.name:<52} verified")
+    if problems:
+        raise RawDataError("raw files failed verification:\n  " + "\n  ".join(problems))
+    return manifest
+
+
+def seed_manifest(cfg: Config, reference: Path) -> Path:
+    """Start a manifest at ``cfg.paths.manifest`` from a reference copy if none exists yet."""
+    target = cfg.resolve(cfg.paths.manifest)
+    if not target.is_file() and reference.resolve() != target.resolve():
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(reference.read_bytes())
+    return target
 
 
 def download(

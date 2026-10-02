@@ -2,7 +2,7 @@
 
 > **Generated file.** Rendered by `lsc-pop docs` from the latest complete run's `validation.jsonl` and comparison CSVs. Don't edit by hand. Terms: [glossary](glossary.md). Hard checks stop the pipeline when they fail; soft and informational checks are reported only.
 
-Run `20261002T140001Z_282797bf_318f4d5a`: **67 checks; 48 hard, 0 hard failures; 1 soft warnings.**
+Run `20261002T155325Z_d1033f90_6cc3e8e2`: **67 checks; 48 hard, 0 hard failures; 1 soft warnings.**
 
 ## Brief §10 checklist
 

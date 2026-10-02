@@ -37,6 +37,7 @@ adds up exactly to the official totals. The full method is in [`docs/methodology
 | 6 | Roll-forward to mid-2024 (cohort; static sensitivity) | done |
 | 7 | Deprivation (IoD 2025, Core20 = most deprived 20%, local quintile) & acute trust catchments from the Office for Health Improvement and Disparities (OHID) | done |
 | 8 | Star-schema outputs, generated docs, reproducibility check | done |
+| 9 | Databricks-native implementation (`databricks/`): Lakeflow pipeline, Unity Catalog, bundle | built and verified locally; first workspace deploy pending |
 
 ## How to use
 
@@ -131,6 +132,20 @@ DuckDB/Databricks for full-table queries.
 | `data/interim/`, `data/processed/` | Stage outputs (rebuilt by `lsc-pop run`) |
 | `outputs/<run_id>/` | Final tables + run log, checks, sensitivity and OHID comparisons |
 | `docs/` | Methodology, decisions (ADRs), data dictionary, limitations, generated reports |
+| `databricks/` | The Databricks implementation (bundle, pipeline source, local test harness) |
+
+## Databricks
+
+The same pipeline also runs **natively on Databricks**, alongside this local version (which stays the reference). It's
+a Databricks Asset Bundle in [`databricks/`](databricks/README.md):
+- a **Lakeflow Declarative Pipeline** with bronze (Python, Auto Loader), silver (SQL), the IPF model (Python,
+  distributed by `applyInPandas`), gold (SQL star schema) and audit layers in Unity Catalog;
+- every check as an **expectation** that fails the update before bad tables are published;
+- **dev, test and prod** targets. The catalog, schemas and Volume are configurable and must already exist.
+
+The settings that change the numbers come from the same `config/config.yaml` (bundled in the wheel). A parity check
+holds the Databricks gold tables to the local outputs: cells within 1e-6 people; dimensions identical. See the
+[runbook](databricks/README.md) and [ADR-0022](docs/decisions/0022-databricks-native-implementation.md).
 
 ## Command reference
 
@@ -158,19 +173,23 @@ be rerun, but later stages must then be rerun too.
 | Option | Description | Default |
 |---|---|---|
 | `--stage`, `-s` | Run only this stage (one of: download, geography, census, ipf, rollforward, mid2025, deprivation, catchments, outputs). | – |
-| `--config`, `-c` | Config file (must sit in a repo's config/ folder). | `config/config.yaml` |
+| `--config`, `-c` | Config file (must sit in a config/ folder). Default: the repo's config/config.yaml. | `config/config.yaml` |
 
 #### `lsc-pop download`
 
 Download raw source files into data/raw/ and record them in data/manifest.json.
 
 Files already present (with a matching SHA-256 hash) are skipped. Raw files are read-only
-and never overwritten. A changed or tampered file stops with an error.
+and never overwritten. A changed or tampered file stops with an error. With --mode verify,
+nothing is downloaded and every file must already be in place (e.g. uploaded to a Volume).
 
 | Option | Description | Default |
 |---|---|---|
 | `--source`, `-s` | Source id(s) from config/sources.yaml to fetch; repeat for several (-s S5 -s S7). Default: all enabled sources. | – |
-| `--config`, `-c` | Config file (must sit in a repo's config/ folder). | `config/config.yaml` |
+| `--raw-dir` | Put raw files here instead of data/raw/ (e.g. a /Volumes/... path). | – |
+| `--manifest` | Manifest file to use (seeded from the committed data/manifest.json if missing). | – |
+| `--mode` | download: fetch missing files. verify: fetch nothing; check files already in place (e.g. uploaded to a Volume) against the manifest. | `download` |
+| `--config`, `-c` | Config file (must sit in a config/ folder). Default: the repo's config/config.yaml. | `config/config.yaml` |
 
 #### `lsc-pop docs`
 
@@ -181,7 +200,7 @@ docs/figures/*.png and the command reference in README.md.
 
 | Option | Description | Default |
 |---|---|---|
-| `--config`, `-c` | Config file (must sit in a repo's config/ folder). | `config/config.yaml` |
+| `--config`, `-c` | Config file (must sit in a config/ folder). Default: the repo's config/config.yaml. | `config/config.yaml` |
 
 #### `lsc-pop validate`
 
@@ -191,7 +210,7 @@ The checks themselves run inside `lsc-pop run`; this only reports them.
 
 | Option | Description | Default |
 |---|---|---|
-| `--config`, `-c` | Config file (must sit in a repo's config/ folder). | `config/config.yaml` |
+| `--config`, `-c` | Config file (must sit in a config/ folder). Default: the repo's config/config.yaml. | `config/config.yaml` |
 
 #### `lsc-pop clean`
 
@@ -206,7 +225,7 @@ run's small provenance files (metadata, run log, checks, hashes).
 | `--include-latest` | Also remove the latest run's tables (same as --keep 0). | off |
 | `--whole-runs` | Delete entire run directories (logs, checks too), not just tables/. | off |
 | `--yes`, `-y` | Actually delete. Without it: dry run. | off |
-| `--config`, `-c` | Config file (must sit in a repo's config/ folder). | `config/config.yaml` |
+| `--config`, `-c` | Config file (must sit in a config/ folder). Default: the repo's config/config.yaml. | `config/config.yaml` |
 
 #### `lsc-pop compare-runs`
 
@@ -218,7 +237,7 @@ Exit code 0 if identical, 1 if any table differs. Writes outputs/reproducibility
 |---|---|---|
 | `RUN_A` (argument) | outputs/<run_id> directory | required |
 | `RUN_B` (argument) | outputs/<run_id> directory (e.g. from a clean checkout) | required |
-| `--config`, `-c` | Config file (must sit in a repo's config/ folder). | `config/config.yaml` |
+| `--config`, `-c` | Config file (must sit in a config/ folder). Default: the repo's config/config.yaml. | `config/config.yaml` |
 
 **Stages** (for `lsc-pop run --stage`), in run order:
 
@@ -304,6 +323,7 @@ from these tables: [`docs/limitations.md`](docs/limitations.md) §8.
 | [limitations](docs/limitations.md) | Caveats for users |
 | [sensitivity](docs/sensitivity.md) | Generated: cohort vs static, newborn proxy, seed floor |
 | [updating](docs/updating.md) | Runbook: new mid-year estimates, lookup/boundary changes, mappings |
+| [databricks/README](databricks/README.md) | Deploying and running the Databricks implementation |
 | [CHANGELOG](docs/CHANGELOG.md) | Changes |
 
 ## Licence

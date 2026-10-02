@@ -33,3 +33,14 @@ def test_run_unknown_stage(project_copy):
     cfg = str(project_copy / "config" / "config.yaml")
     result = runner.invoke(app, ["run", "--stage", "nope", "--config", cfg])
     assert result.exit_code != 0
+
+
+def test_task_main_returns_on_success_and_raises_on_failure(project_copy):
+    import pytest
+
+    from lsc_pop.cli import task_main
+
+    cfg = str(project_copy / "config" / "config.yaml")
+    task_main(["run", "--stage", "mid2025", "--config", cfg])  # exit 0 -> returns normally
+    with pytest.raises(RuntimeError, match="exited with code 2"):
+        task_main(["run", "--stage", "nope", "--config", cfg])

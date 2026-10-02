@@ -12,3 +12,25 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pytest -q   # unit tests use synthetic data; real-data tests skip
+
+  pandas-2:
+    # Databricks serverless images ship pandas 2.x; check the package still works there.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+      - run: uv sync --frozen
+      - run: uv run --with "pandas==2.2.*" pytest -q
+
+  databricks:
+    # Databricks implementation: harness + synthetic end-to-end parity in local Spark (Java 17).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: astral-sh/setup-uv@v10.2.0
+      - run: uv sync --frozen --group databricks
+      - run: uv run --group databricks pytest -q databricks/tests -p no:warnings

@@ -1,0 +1,36 @@
+name: Bug report
+description: Something in the pipeline, outputs or docs is wrong or broken.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: Commands run (e.g. `uv run lsc-pop run -s ipf`), config changes, and the error output.
+      render: shell
+  - type: input
+    id: run
+    attributes:
+      label: Run id
+      description: The `outputs/<run_id>` folder name (or Databricks pipeline update id), if relevant.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options: [Local pipeline (lsc-pop), Databricks pipeline, Documentation, Other]
+    validations:
+      required: true
+  - type: checkboxes
+    id: data
+    attributes:
+      label: Data safety
+      options:
+        - label: This issue contains no patient-level or other sensitive data.
+          required: true

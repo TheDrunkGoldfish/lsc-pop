@@ -206,6 +206,17 @@ If ONS publishes a mid-year estimate on new LSOAs before you're ready, stay on t
 
 ---
 
+## F. Databricks deployment
+
+Settings, mappings, the source register and the manifest are built into the lsc-pop wheel. After any update above:
+1. commit;
+2. `databricks bundle deploy -t <target>` from `databricks/`;
+3. run the job.
+
+New raw files arrive through the ingest task (or upload them and use `--var ingest_mode=verify`). If the update
+changes the method itself, change both implementations; `databricks/tests/test_pipeline_parity.py` fails otherwise
+(ADR-0022).
+
 ## Checklist after any update
 
 - [ ] New source registered in `config/sources.yaml` with release date, edition and quirks
