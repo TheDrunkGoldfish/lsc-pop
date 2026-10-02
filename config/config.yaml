@@ -1,0 +1,133 @@
+# lsc-pop pipeline configuration.
+# Everything that changes the numbers lives here. The validated config (plus the content of the
+# mapping files it references) is hashed into every run's metadata. See docs/decisions/ for the
+# rationale behind each default.
+
+reference_year: 2024          # mid-year reference date (30 June). ADR-0006. See docs/updating.md.
+variant: cohort               # cohort | static  (ethnic-share roll-forward). ADR-0004.
+cohort_shift_years: null      # null = reference_year - 2021 (2024 -> 3: 21 Mar 2021 -> 30 Jun 2024 ~= 3.3y).
+
+# Current-year LSOA population by sex x single year of age (S5). For a new mid-year release,
+# register the new file in config/sources.yaml and update file/edition here (docs/updating.md).
+mye:
+  source: S5
+  file: sapelsoasyoa20222024.xlsx
+  edition: "Mid-2022 revised (Nov 2025) to mid-2024 (SAPE2024)"
+  sheet_template: "Mid-{year} LSOA 2021"   # sheet for reference_year
+  header_row: 3                            # 0-based (Excel row 4)
+
+mid2025:
+  enabled: false              # Provisional mid-2025 variant: out of scope for now. ADR-0006.
+
+footprint:
+  mode: england               # england | icbs. ADR-0002.
+  icb_codes: []               # Only used when mode == icbs (ONS E54 codes).
+  # Priority footprint for reporting/validation: NHS Lancashire and South Cumbria ICB.
+  # ONS code E54000048 / ODS QE1 (verified against the April 2026 S7 lookup: 1,060 LSOAs).
+  focus_icb_codes: [E54000048]
+  extra_lsoas_from_trust_catchments: []   # Only meaningful when mode == icbs.
+
+# OneLSC acute trusts (ODS codes), the priority trusts for reporting. Aggregation covers every
+# trust in the OHID catchment data (verified against OHID S9, April 2026 edition).
+focus_trusts:
+  - RXL   # Blackpool Teaching Hospitals NHS FT
+  - RXR   # East Lancashire Hospitals NHS Trust
+  - RXN   # Lancashire Teaching Hospitals NHS FT
+  - RTX   # University Hospitals of Morecambe Bay NHS FT
+
+age:
+  max_age: 90                 # 90 = open-ended 90+ group.
+  bands_file: config/mappings/age_bands.csv
+  census_classifications_file: config/mappings/census_age_classifications.csv  # RM032 bands, 23a
+  band_sets: [5yr, 10yr]      # ADR-0007.
+
+ethnicity:
+  mapping_file: config/mappings/ethnicity_19_to_6.csv
+  levels: ["19", "6"]         # ADR-0007. "5" (Census high-level) also available in the mapping.
+
+ipf:                          # ADR-0003, ADR-0016
+  tolerance: 1.0e-6           # max absolute margin error (persons) at convergence.
+  max_iter: 1000
+  seed_floor: 0.5             # added to every LTLA seed count (continuity correction).
+  seed_substitutes:           # LTLA blocked at all fine ages -> borrow this LTLA's seed (ADR-0011)
+    E06000053: E06000052      #   Isles of Scilly -> Cornwall
+  sensitivity_floors: [0.01, 0.5, 2.0]   # compared on the focus ICB in Stage C (ADR-0016)
+
+rollforward:                  # ADR-0004, ADR-0017
+  newborn_proxy_ages: [0]     # 2021 ages whose shares stand in for post-Census births.
+
+reconciliation:               # ADR-0015
+  margin_source: rm200        # rm032 | rm200 | mean: which table sets each LSOA x sex x band total
+  warn_abs: 10                # soft check CEN-12: flag bands adjusted by more than
+  warn_rel: 0.05              #   max(warn_abs persons, warn_rel x band total)
+
+rounding:
+  integerise: false           # Floats only (ADR-0005). Integerisation not implemented.
+  seed: 20240630
+
+deprivation:                  # ADR-0008. New IoD edition: docs/updating.md section E.
+  source: S8
+  file: File_7_IoD2025_All_Ranks_Scores_Deciles_Population_Denominators.csv
+  edition: IoD 2025
+  core20_max_decile: 2        # Core20 = national IMD deciles 1-2
+  local_quintile:
+    enabled: true
+    within: icb               # population-weighted quintile within each ICB. ADR-0008.
+
+catchments:                   # ADR-0019. OHID acute trust catchments (S9).
+  source: S9
+  file: nhs-acute-hospital-trust-catchment-populations-data_tables-april-2026.ods
+  catchment_year: 2024
+  admission_type: All admissions
+
+# Geography lookups (ADR-0012, ADR-0014). Raw column -> standard column. Standard names are
+# vintage-free (icb_cd, lad_cd, ...); the vintage is recorded in outputs. When ICBs merge or a new
+# lookup is published: add the new file to config/sources.yaml, then point `nhs` at it and update
+# the raw column names here. See docs/updating.md.
+geography:
+  expected_lsoa_count: 33755        # England LSOA 2021
+  nhs:
+    source: S7
+    file: lsoa21_sicbl26_icb26_nhser26_lad26.csv
+    vintage: "2026-04"
+    columns:
+      LSOA21CD: lsoa21cd
+      LSOA21NM: lsoa21nm
+      SICBL26CD: sicbl_cd
+      SICBL26CDH: sicbl_ods
+      SICBL26NM: sicbl_nm
+      ICB26CD: icb_cd
+      ICB26CDH: icb_ods
+      ICB26NM: icb_nm
+      NHSER26CD: nhser_cd
+      NHSER26CDH: nhser_ods
+      NHSER26NM: nhser_nm
+      LAD26CD: lad_cd
+      LAD26NM: lad_nm
+  census:                           # Census 2021 geography: does not change with NHS reorganisations
+    source: S7b
+    file: oa21_lsoa21_msoa21_lad22_exactfit_v3.csv
+    vintage: "2021-12"
+    columns:
+      LSOA21CD: lsoa21cd
+      MSOA21CD: msoa21cd
+      MSOA21NM: msoa21nm
+      LAD22CD: ltla21cd
+      LAD22NM: ltla21nm
+  ltla_region:
+    source: S7c
+    file: lad22_rgn22.csv
+    vintage: "2022-12"
+    key: ltla21cd
+    columns:
+      LAD22CD: ltla21cd
+      RGN22CD: rgn21cd
+      RGN22NM: rgn21nm
+
+paths:
+  raw: data/raw
+  interim: data/interim
+  processed: data/processed
+  outputs: outputs
+  manifest: data/manifest.json
+  sources: config/sources.yaml   # source registry (what download.py fetches)

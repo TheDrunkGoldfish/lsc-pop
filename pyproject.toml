@@ -1,0 +1,52 @@
+[project]
+name = "lsc-pop"
+version = "0.1.0"
+description = "Modelled LSOA population estimates by sex, single year of age and ethnic group (England; L&SC focus). Modelled estimates, not official statistics."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.9",
+    "numpy>=2.0",
+    "odfpy>=1.4",
+    "openpyxl>=3.1",
+    "pandas>=2.2",
+    "pyarrow>=17",
+    "pydantic>=2.7",
+    "pyyaml>=6.0",
+    "requests>=2.32",
+    "typer>=0.12",
+]
+
+[project.scripts]
+lsc-pop = "lsc_pop.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lsc_pop"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Option", "typer.Argument"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/lsc_pop/report.py" = ["E501"]  # long Markdown text literals

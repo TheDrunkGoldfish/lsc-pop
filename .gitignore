@@ -1,0 +1,22 @@
+# Python / tooling
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Data: raw/interim/processed are never committed; the manifest is.
+data/raw/*
+data/interim/*
+data/processed/*
+!data/**/.gitkeep
+!data/manifest.json
+
+# Run outputs
+outputs/*
+!outputs/.gitkeep
+
+.DS_Store
