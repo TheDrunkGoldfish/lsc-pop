@@ -158,7 +158,7 @@ def _mid_year_inputs(ctx):
     from lsc_pop.rollforward import _processed
 
     cube = read_cube(_processed(ctx.cfg) / "estimates")
-    lsoas = cube.coords["lsoa21cd"]
+    lsoas = cube.coords["lsoa21_code"]
     by_eth = pd.DataFrame(cube.data.sum((1, 2)), index=lsoas, columns=cube.coords["eth19"])
     eth = load_ethnicity_mapping(ctx.cfg.resolve(ctx.cfg.ethnicity.mapping_file))
     eth5 = by_eth.T.groupby(eth.set_index("code_19")["code_5"]).sum().T
@@ -180,7 +180,7 @@ def _run_catchments(ctx) -> None:
 
     pop, eth5 = _mid_year_inputs(ctx)
     iod = pd.read_parquet(ctx.cfg.resolve(ctx.cfg.paths.interim) / "deprivation" / "iod.parquet")
-    out = catchments.run(ctx, pop, eth5, iod.set_index("lsoa21cd")["imd_score"])
+    out = catchments.run(ctx, pop, eth5, iod.set_index("lsoa21_code")["imd_score"])
     t = out["totals"]
     f = t[t["trust_code"].isin(ctx.cfg.focus_trusts)]
     for r in f.itertuples():

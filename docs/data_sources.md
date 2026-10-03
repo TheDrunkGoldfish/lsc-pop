@@ -20,6 +20,7 @@ Every source is published under the Open Government Licence v3.0 unless stated o
 | S7d | LTLA 2021 -> upper-tier LA (diagnostic only: OHID T5 comparison, ADR-0019) | Local Authority District to County and Unitary Authority (December 2022) Lookup in EW | 2022-12-31 | lookup | yes | 1/1 |
 | S8 | Deprivation (IMD and domains) | English Indices of Deprivation 2025 - File 7: all ranks, scores, deciles and population denominators | 2025-11-17 | accredited official statistics | yes | 1/1 |
 | S9 | Trust catchment proportions (MSOA 2021) and trust-level validation comparators | OHID NHS acute (hospital) trust catchment populations, April 2026 - data tables | 2026-05-29 | official statistics | yes | 1/1 |
+| S10 | Trust -> host ICB link (dim_trust.host_icb_code; ADR-0025) | NHS Organisation Data Service (ODS) directory: active NHS trusts and their relationships | 2026-10-03 | other | yes | 1/1 |
 
 ## S1: Census 2021 RM032 - Ethnic group by sex by age (LSOA 2021)
 
@@ -392,3 +393,30 @@ Every source is published under the Open Government Licence v3.0 unless stated o
 - RBN (Mersey and West Lancashire Teaching Hospitals) covers former Southport & Ormskirk activity. RW5 (LSCFT) is not included (it isn't an acute trust).
 - Large ODS (content.xml ~550 MB uncompressed). Pandas/odfpy is very slow, so the Phase 7 reader should use a streaming XML parser.
 - The file was replaced silently on 2026-05-29 with no change note. The internal 'Published 28 April 2026' doesn't match gov.uk's dates.
+
+## S10: NHS Organisation Data Service (ODS) directory: active NHS trusts and their relationships
+
+| Field | Value |
+|---|---|
+| Role | Trust -> host ICB link (dim_trust.host_icb_code; ADR-0025) |
+| Publisher | NHS England (ODS Organisation Reference Data API) |
+| Landing page | <https://digital.nhs.uk/services/organisation-data-service/guidance-for-developers/organisation-endpoint> |
+| Release date | 2026-10-03 |
+| Edition | Live directory, queried 2026-10-03 (no versioned release; the SHA-256 identifies the snapshot) |
+| Reference date | 2026-10-03 |
+| Geography | NHS trusts (ODS primary role RO197), England |
+| Status | other |
+| Licence | Open Government Licence v3.0 |
+| Enabled | yes |
+
+**Files**
+
+| File | Retrieved | Size | SHA-256 | URL |
+|---|---|---|---|---|
+| `ods_nhs_trusts.jsonl.gz` | 2026-10-03T10:35:07Z | 56.0 KB | `5a94de63a168b796c937a8af05c79e0aadda6951a1debb1fc89ccb4cc0258557` | <https://directory.spineservices.nhs.uk/ORD/2-0-0/organisations?PrimaryRoleId=RO197&Status=Active&Limit=1000> |
+| ↳ One full ODS organisation record per active NHS trust (search PrimaryRoleId=RO197), as returned by the API, sorted by organisation code. | | | | |
+
+**Known quirks**
+
+- ODS has no 'reports to' relationship for trusts: NHS trusts are independent bodies. RE5 'is located in the geography of' gives exactly one ICB (RO261) per trust and is used as the host ICB. RE8 'is partner to' gives one or more ICBs and is not used (partly stale after the April 2026 ICB mergers).
+- The directory is live and unversioned: a re-download after the manifest entry is removed can differ. The ICB ODS codes are matched to the ICB lookup (S7) by ODS code.

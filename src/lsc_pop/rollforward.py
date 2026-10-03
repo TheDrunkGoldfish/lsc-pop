@@ -122,7 +122,7 @@ def load_mye(ctx: RunContext, lsoas: list[str]) -> np.ndarray:
         step.note(f"{cfg.mye_sheet}: England total {arr.sum():,.0f}")
         long = pd.DataFrame(
             {
-                "lsoa21cd": np.repeat(lsoas, 2 * n_age),
+                "lsoa21_code": np.repeat(lsoas, 2 * n_age),
                 "sex": np.tile(np.repeat(SEXES, n_age), len(lsoas)),
                 "age": np.tile(np.arange(n_age), 2 * len(lsoas)),
                 "population": arr.ravel(),
@@ -310,7 +310,7 @@ def validate_estimates(ctx, est, shares, mye, fb, variant) -> None:
 def summarise(cfg, est: np.ndarray, lookup: pd.DataFrame, lsoas: list[str]) -> pd.DataFrame:
     """Totals by geography (England, focus ICB) x eth19 x 10-year band x sex."""
     eth = load_ethnicity_mapping(cfg.resolve(cfg.ethnicity.mapping_file)).set_index("code_19")
-    focus = lookup.set_index("lsoa21cd").loc[lsoas, "in_focus_icb"].to_numpy()
+    focus = lookup.set_index("lsoa21_code").loc[lsoas, "in_focus_icb"].to_numpy()
     band = np.minimum(np.arange(cfg.age.max_age + 1) // 10 * 10, 90)
     rows = []
     for geo, mask in (("England", np.ones(len(lsoas), bool)), ("Focus ICB", focus)):
@@ -354,10 +354,10 @@ def sensitivity(ctx, base_cube, mye, ltla_of_lsoa, lookup, lsoas, default_est) -
         ctx, rd("seed_age91"), rd("seed_age23"), rd("seed_blocked"), lookup
     )
     eth_m, age_m = stage_c.margin_arrays(cfg, rd("margins"), lsoas)
-    idx = np.flatnonzero(lookup.set_index("lsoa21cd").loc[lsoas, "in_focus_icb"].to_numpy())
-    li = pd.Index(ltlas).get_indexer(lookup.set_index("lsoa21cd").loc[lsoas, "ltla21cd"])
+    idx = np.flatnonzero(lookup.set_index("lsoa21_code").loc[lsoas, "in_focus_icb"].to_numpy())
+    li = pd.Index(ltlas).get_indexer(lookup.set_index("lsoa21_code").loc[lsoas, "ltla21_code"])
     sub_lsoas = [lsoas[i] for i in idx]
-    sub_lookup = lookup[lookup["lsoa21cd"].isin(sub_lsoas)]
+    sub_lookup = lookup[lookup["lsoa21_code"].isin(sub_lsoas)]
     for fl in cfg.ipf.sensitivity_floors:
         if fl == cfg.ipf.seed_floor:
             continue
@@ -370,7 +370,7 @@ def sensitivity(ctx, base_cube, mye, ltla_of_lsoa, lookup, lsoas, default_est) -
             fl,
             label=f"rollforward.sensitivity_fit[floor={fl:g}]",
         )
-        cube = Cube(b, DIMS, base_cube.coords | {"lsoa21cd": sub_lsoas})
+        cube = Cube(b, DIMS, base_cube.coords | {"lsoa21_code": sub_lsoas})
         est = roll_forward(ctx, cube, mye[idx], ltla_of_lsoa[idx], cfg.variant)[0]
         s = summarise(cfg, est, sub_lookup, sub_lsoas)
         frames.append(s[s["geography"] == "Focus ICB"].assign(variant=f"seed floor {fl:g}"))
@@ -388,11 +388,13 @@ def run(ctx: RunContext) -> dict:
 
     cfg = ctx.cfg
     lookup = load_lookup(cfg)
-    lsoas = lookup["lsoa21cd"].tolist()
+    lsoas = lookup["lsoa21_code"].tolist()
     base_cube = load_base(cfg)
-    if base_cube.coords["lsoa21cd"] != lsoas:
+    if base_cube.coords["lsoa21_code"] != lsoas:
         raise ValueError("base cube LSOAs differ from the geography lookup; rerun Stage C")
-    ltla_of_lsoa = pd.Index(sorted(lookup["ltla21cd"].unique())).get_indexer(lookup["ltla21cd"])
+    ltla_of_lsoa = pd.Index(sorted(lookup["ltla21_code"].unique())).get_indexer(
+        lookup["ltla21_code"]
+    )
 
     mye = load_mye(ctx, lsoas)
     check_broad_age(ctx, mye, lsoas)

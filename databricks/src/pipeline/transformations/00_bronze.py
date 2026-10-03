@@ -90,7 +90,7 @@ def lookup_ltla_region_raw():
     name=n.fq("bronze", "iod_raw"),
     comment="English Indices of Deprivation 2025, File 7 (S8), standard column names.",
 )
-@dp.expect_or_fail("lsoa_code_present", "lsoa21cd IS NOT NULL")
+@dp.expect_or_fail("lsoa_code_present", "lsoa21_code IS NOT NULL")
 def iod_raw():
     return B.iod_raw(spark, n, cfg)  # noqa: F821
 
@@ -99,7 +99,7 @@ def iod_raw():
     name=n.fq("bronze", "mye_raw"),
     comment="ONS mid-year LSOA estimates (S5), reference-year sheet, wide as published.",
 )
-@dp.expect_or_fail("lsoa_code_present", "lsoa21cd IS NOT NULL")
+@dp.expect_or_fail("lsoa_code_present", "lsoa21_code IS NOT NULL")
 def mye_raw():
     return B.mye_raw(spark, n, cfg)  # noqa: F821
 
@@ -110,6 +110,14 @@ def mye_raw():
 )
 def mye_broad_raw():
     return B.mye_broad_raw(spark, n, cfg)  # noqa: F821
+
+
+@dp.materialized_view(
+    name=n.fq("bronze", "ods_trust_relationships_raw"),
+    comment="NHS ODS directory (S10): all relationships of all active NHS trusts, as published.",
+)
+def ods_trust_relationships_raw():
+    return B.ods_trust_relationships_raw(spark, n, cfg)  # noqa: F821
 
 
 def _ohid(table: str):

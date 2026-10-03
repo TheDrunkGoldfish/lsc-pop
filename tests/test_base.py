@@ -24,7 +24,7 @@ def _seed91(ltlas, value=lambda lt, e, s, a: 1 + (e % 3) * (a % 5)):
             for s in "FM"
             for a in AGES
         ],
-        columns=["ltla21cd", "eth19", "sex", "age", "population"],
+        columns=["ltla21_code", "eth19", "sex", "age", "population"],
     )
 
 
@@ -32,23 +32,23 @@ def _seed23(ltlas, value=lambda lt, e, s, k: 10):
     return pd.DataFrame(
         [(lt, e, s, k, value(lt, e, s, k)) for lt in ltlas for e in base.ETH for s in "FM"
          for k in range(1, 24)],
-        columns=["ltla21cd", "eth19", "sex", "age23", "population"],
+        columns=["ltla21_code", "eth19", "sex", "age23", "population"],
     )  # fmt: skip
 
 
 def _lookup():
     return pd.DataFrame(
         {
-            "lsoa21cd": ["E01000001", "E01000002", "E01000003", "E01000004"],
-            "ltla21cd": ["E07000001", "E07000002", "E07000003", "E06000053"],
-            "rgn21cd": ["E12000002", "E12000002", "E12000002", "E12000009"],
+            "lsoa21_code": ["E01000001", "E01000002", "E01000003", "E01000004"],
+            "ltla21_code": ["E07000001", "E07000002", "E07000003", "E06000053"],
+            "rgn21_code": ["E12000002", "E12000002", "E12000002", "E12000009"],
             "in_focus_icb": [True, True, False, False],
         }
     )
 
 
 def _blocked(rows):
-    return pd.DataFrame(rows, columns=["ltla21cd", "classification"])
+    return pd.DataFrame(rows, columns=["ltla21_code", "classification"])
 
 
 def test_seed_region_split_and_substitute(ctx):
@@ -66,7 +66,7 @@ def test_seed_region_split_and_substitute(ctx):
     ctx.cfg = cfg
     seed, ltlas, src = base.build_seed(ctx, s91, s23, blocked, lk)
     assert ltlas == ["E06000053", "E07000001", "E07000002", "E07000003"]
-    srcs = dict(zip(src["ltla21cd"], src["seed_source"], strict=True))
+    srcs = dict(zip(src["ltla21_code"], src["seed_source"], strict=True))
     assert srcs == {"E06000053": "substitute:E07000001", "E07000001": "age91",
                     "E07000002": "age91", "E07000003": "age23_region_split"}  # fmt: skip
     i3 = ltlas.index("E07000003")
@@ -104,13 +104,13 @@ def _margins(lsoas, rng):
                 t = ages[lo : hi + 1].sum()
                 w = rng.dirichlet(np.ones(19) * 0.3)
                 rows += [(ls, s, b, "eth19", e, t * w[e - 1]) for e in base.ETH]
-    return pd.DataFrame(rows, columns=["lsoa21cd", "sex", "band", "kind", "key", "population"])
+    return pd.DataFrame(rows, columns=["lsoa21_code", "sex", "band", "kind", "key", "population"])
 
 
 def test_fit_reproduces_both_margins(ctx):
     rng = np.random.default_rng(0)
     lk = _lookup()
-    lsoas = lk["lsoa21cd"].tolist()
+    lsoas = lk["lsoa21_code"].tolist()
     m = _margins(lsoas, rng)
     eth_m, age_m = base.margin_arrays(ctx.cfg, m, lsoas)
     seed = rng.uniform(0, 3, (4, 2, 19, 91)) * (rng.uniform(size=(4, 2, 19, 91)) > 0.5)
@@ -132,7 +132,7 @@ def test_zero_floor_with_sparse_seed_can_be_infeasible(ctx):
     from lsc_pop.ipf import IPFInfeasible
 
     rng = np.random.default_rng(0)
-    lsoas = _lookup()["lsoa21cd"].tolist()
+    lsoas = _lookup()["lsoa21_code"].tolist()
     eth_m, age_m = base.margin_arrays(ctx.cfg, _margins(lsoas, rng), lsoas)
     with pytest.raises(IPFInfeasible):
         base.fit_base(ctx, np.zeros((4, 2, 19, 91)), np.arange(4), eth_m, age_m, floor=0.0)
@@ -141,8 +141,8 @@ def test_zero_floor_with_sparse_seed_can_be_infeasible(ctx):
 def test_cube_roundtrip_and_hash(ctx, tmp_path):
     rng = np.random.default_rng(0)
     data = rng.uniform(size=(5, 2, 3, 4))
-    cube = Cube(data, ("lsoa21cd", "sex", "age", "eth19"),
-                {"lsoa21cd": [f"E0100000{i}" for i in range(5)], "sex": ["F", "M"],
+    cube = Cube(data, ("lsoa21_code", "sex", "age", "eth19"),
+                {"lsoa21_code": [f"E0100000{i}" for i in range(5)], "sex": ["F", "M"],
                  "age": [0, 1, 2], "eth19": [1, 2, 3, 4]})  # fmt: skip
     path = write_cube(cube, tmp_path / "c", ctx, chunk=2)
     back = read_cube(path)
@@ -151,7 +151,7 @@ def test_cube_roundtrip_and_hash(ctx, tmp_path):
     df = pd.read_parquet(path)
     assert len(df) == 5 * 2 * 3 * 4
     row = df.iloc[1 * 24 + 1 * 12 + 2 * 4 + 3]
-    assert (row["lsoa21cd"], row["sex"], row["age"], row["eth19"]) == ("E01000001", "M", 2, 4)
+    assert (row["lsoa21_code"], row["sex"], row["age"], row["eth19"]) == ("E01000001", "M", 2, 4)
     assert row["population"] == data[1, 1, 2, 3]
     assert Cube(data + 1e-12, cube.dims, cube.coords).hash() != cube.hash()
     assert cube.totals()["by_sex"]["F"] == pytest.approx(data[:, 0].sum())

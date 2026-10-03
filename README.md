@@ -10,7 +10,7 @@
 A reproducible Python pipeline that produces **population estimates for every 2021 Lower layer Super Output Area
 (LSOA, small areas of ~1,500 people) in England by sex × single year of age (0–90+) × ethnic group (Census 2021,
 19 groups and a 6-group aggregation)** for mid-2024. It adds the English Indices of Deprivation (IoD) 2025 and NHS
-acute trust catchment shares. Outputs are a **star schema** (one fact table plus lookup tables) for SQL/Databricks.
+acute trust catchment shares. Outputs are a **star/snowflake schema** (one fact table plus dimension tables, with geography snowflaked) for SQL/Databricks.
 Any aggregation, e.g. to Integrated Care Board (ICB), sub-ICB, local authority, trust catchment or deprivation
 quintile, is done in the business intelligence (BI) layer ([ADR-0018](docs/decisions/0018-star-schema-outputs-no-aggregates.md);
 an ADR is an architecture decision record, see `docs/decisions/`).
@@ -110,12 +110,12 @@ import pandas as pd
 cfg = load_config()  # config/config.yaml
 tables = latest_complete_run(cfg) / "tables"  # newest outputs/<run_id>/tables
 fact = pd.read_parquet(
-    tables / "fact_population.parquet", filters=[("lsoa21cd", "==", "E01012581")]
+    tables / "fact_population.parquet", filters=[("lsoa21_code", "==", "E01012581")]
 )  # one LSOA (3,458 rows)
 lsoa = pd.read_parquet(tables / "dim_lsoa.parquet")
 eth = pd.read_parquet(tables / "dim_ethnicity.parquet")
 lsc = (
-    fact.merge(lsoa[lsoa.in_focus_icb][["lsoa21cd"]])  # L&SC only
+    fact.merge(lsoa[lsoa.in_focus_icb][["lsoa21_code"]])  # L&SC only
     .merge(eth[["eth19", "label_6"]])
     .groupby("label_6")["population"]
     .sum()
@@ -299,7 +299,8 @@ config part.
 |---|---|
 | `tables/fact_population.parquet` | LSOA × sex × single year × 19 ethnic groups, mid-2024 (116.7M rows; unrounded; sums to ONS) |
 | `tables/fact_population_csv/icb=<code>.csv` | The same, as one CSV per ICB |
-| `tables/dim_lsoa`, `dim_ethnicity`, `dim_age`, `dim_trust`, `bridge_lsoa_trust` (`.parquet` + `.csv`) | Geography + IoD 2025, ethnicity 19→6→5, age bands, trusts, LSOA×trust catchment shares |
+| `tables/dim_lsoa`, `dim_ethnicity`, `dim_age`, `dim_trust`, `bridge_lsoa_trust` (`.parquet` + `.csv`) | LSOA keys + IoD 2025, ethnicity 19→6→5, age bands, trusts (with host ICB), LSOA×trust catchment shares |
+| `tables/dim_icb`, `dim_sub_icb`, `dim_nhs_region`, `dim_lad`, `dim_msoa`, `dim_ltla`, `dim_region` (`.parquet` + `.csv`) | Geography levels snowflaked off `dim_lsoa` (ADR-0025) |
 | `tables/schema.sql` | Table definitions (`CREATE TABLE`) + example queries |
 | `*.metadata.json` (one per table) | run id, config/code/lock hashes, reference date, variant, sources, data hash, the not-official-statistics statement |
 | `run_log.jsonl`, `validation.jsonl`, `metadata.json`, `output_hashes.json` | Step log (rows and population in/out), check results, run metadata + full config, table hashes |

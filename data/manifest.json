@@ -17,6 +17,21 @@
       "url": "https://www.nomisweb.co.uk/api/v01/dataset/NM_2132_1.data.csv?geography=2092957699TYPE151&c2021_eth_20=0...19&c2021_age_6=1...5&c_sex=1,2&measures=20100&select=geography_code,c2021_eth_20,c2021_age_6,c_sex,obs_value,record_count"
     },
     {
+      "content_type": "application/x-ndjson+gzip",
+      "edition": "Live directory, queried 2026-10-03 (no versioned release; the SHA-256 identifies the snapshot)",
+      "file": "ods_nhs_trusts.jsonl.gz",
+      "final_url": "https://directory.spineservices.nhs.uk/ORD/2-0-0/organisations?PrimaryRoleId=RO197&Status=Active&Limit=1000",
+      "kind": "ods_api_orgs",
+      "path": "data/raw/S10/ods_nhs_trusts.jsonl.gz",
+      "release_date": "2026-10-03",
+      "retrieved_at": "2026-10-03T10:35:07Z",
+      "rows": 247,
+      "sha256": "5a94de63a168b796c937a8af05c79e0aadda6951a1debb1fc89ccb4cc0258557",
+      "size_bytes": 57395,
+      "source_id": "S10",
+      "url": "https://directory.spineservices.nhs.uk/ORD/2-0-0/organisations?PrimaryRoleId=RO197&Status=Active&Limit=1000"
+    },
+    {
       "content_type": "text/csv",
       "edition": "Census 2021, RM200 version 1",
       "file": "rm200_lsoa21_england.csv",

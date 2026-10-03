@@ -12,7 +12,7 @@ Lakeflow Job  lsc_pop_<target>
       bronze  Python  Auto Loader streaming tables (Nomis CSV, ONS JSON) + parsed xlsx/ODS/zip/lookups
       silver  SQL     geography, tidy Census, margin reconciliation, IoD, OHID shares, params/mappings
       model   Python  2021 base: IPF distributed by LTLA (applyInPandas, same numpy code as local)
-      gold    SQL     roll-forward + star schema: fact_population, dim_lsoa/ethnicity/age/trust, bridge_lsoa_trust
+      gold    SQL     roll-forward + star/snowflake schema: fact_population, dim_lsoa/ethnicity/age/trust, geography dims, bridge_lsoa_trust
       audit   SQL+Py  checks (expectations), validation, sensitivity, share fallback, run metadata
  └─ audit     Python task         OHID trust comparisons -> audit.ohid_comparison_*, audit.ohid_checks
 ```
@@ -99,7 +99,7 @@ every file's SHA-256 against the committed manifest, so a truncated or altered u
 
 | Where | What |
 |---|---|
-| `<catalog>.gold.fact_population`, `dim_lsoa`, `dim_ethnicity`, `dim_age`, `dim_trust`, `bridge_lsoa_trust` | The star schema (same as `outputs/<run_id>/tables/`; `dim_lsoa.population_mid_year` = local `population_mid<year>`) |
+| `<catalog>.gold.fact_population`, `dim_lsoa`, `dim_ethnicity`, `dim_age`, `dim_trust`, `bridge_lsoa_trust`, `dim_icb`, `dim_sub_icb`, `dim_nhs_region`, `dim_lad`, `dim_msoa`, `dim_ltla`, `dim_region` | The star/snowflake schema (same as `outputs/<run_id>/tables/`; `dim_lsoa.population_mid_year` = local `population_mid<year>`) |
 | `<catalog>.audit.validation` | Every check with the same ids as the local validation report. A failed hard check fails the update before anything is published |
 | `<catalog>.audit.run_metadata` | Config/code hashes, git commit, bundle target, refresh time |
 | `<catalog>.audit.sensitivity`, `share_fallback`, `ohid_comparison_*`, `source_manifest` | Sensitivity variants, fallback usage, OHID comparisons (incl. the CAT-11 diagnostic), raw-file provenance |

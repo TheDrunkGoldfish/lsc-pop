@@ -73,14 +73,14 @@ def load_iod(ctx: RunContext, lsoas: list[str]) -> pd.DataFrame:
             raise KeyError(
                 f"IoD columns not recognised: missing {sorted(expected - set(rename.values()))}"
             )
-        df = raw.rename(columns=rename | {"LSOA code (2021)": "lsoa21cd"})
-        df = df[["lsoa21cd", *sorted(expected)]]
+        df = raw.rename(columns=rename | {"LSOA code (2021)": "lsoa21_code"})
+        df = df[["lsoa21_code", *sorted(expected)]]
         step.drop(
             0,
             f"kept {len(expected)} rank/score/decile columns; dropped names and mid-2022 "
             "denominators (not used as population inputs)",
         )
-        got = pd.Index(df["lsoa21cd"])
+        got = pd.Index(df["lsoa21_code"])
         check(
             ctx,
             "DEP-01",
@@ -99,7 +99,7 @@ def load_iod(ctx: RunContext, lsoas: list[str]) -> pd.DataFrame:
             stage=STAGE,
         )
         step.output("iod", df)
-    return df.set_index("lsoa21cd").loc[lsoas].reset_index()
+    return df.set_index("lsoa21_code").loc[lsoas].reset_index()
 
 
 def local_quintile(rank: pd.Series, pop: pd.Series, group: pd.Series) -> pd.Series:
@@ -114,12 +114,12 @@ def local_quintile(rank: pd.Series, pop: pd.Series, group: pd.Series) -> pd.Seri
 
 
 def run(ctx: RunContext, population: pd.Series) -> pd.DataFrame:
-    """``population``: mid-year total per LSOA (index lsoa21cd), used for the local quintile."""
+    """``population``: mid-year total per LSOA (index lsoa21_code), used for the local quintile."""
     from lsc_pop.geography import load_lookup
 
     cfg = ctx.cfg
     lookup = load_lookup(cfg)
-    lsoas = lookup["lsoa21cd"].tolist()
+    lsoas = lookup["lsoa21_code"].tolist()
     iod = load_iod(ctx, lsoas)
     with logged_step(ctx, "deprivation.derive", params=cfg.deprivation.model_dump()) as step:
         step.input("iod", iod)
@@ -131,7 +131,7 @@ def run(ctx: RunContext, population: pd.Series) -> pd.DataFrame:
             raise ValueError("population missing for some LSOAs")
         lq = cfg.deprivation.local_quintile
         if lq.enabled:
-            grp = lookup["icb_cd" if lq.within == "icb" else "lad_cd"]
+            grp = lookup["icb_code" if lq.within == "icb" else "lad_code"]
             iod["imd_local_quintile"] = local_quintile(
                 iod["imd_rank"], pd.Series(pop), grp
             ).to_numpy()

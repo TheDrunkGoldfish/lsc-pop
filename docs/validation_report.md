@@ -2,7 +2,7 @@
 
 > **Generated file.** Rendered by `lsc-pop docs` from the latest complete run's `validation.jsonl` and comparison CSVs. Don't edit by hand. Terms: [glossary](glossary.md). Hard checks stop the pipeline when they fail; soft and informational checks are reported only.
 
-Run `20261002T155325Z_d1033f90_6cc3e8e2`: **67 checks; 48 hard, 0 hard failures; 1 soft warnings.**
+Run `20261003T104609Z_97bc3364_07ee74de`: **70 checks; 50 hard, 0 hard failures; 1 soft warnings.**
 
 ## Brief §10 checklist
 
@@ -28,11 +28,11 @@ Run `20261002T155325Z_d1033f90_6cc3e8e2`: **67 checks; 48 hard, 0 hard failures;
 | GEO-02 | geography | hard | ✅ | England LSOA count matches expected | {"expected": 33755, "lsoas": 33755} |
 | GEO-03 | geography | hard | ✅ | LSOA codes unique | {"duplicates": 0} |
 | GEO-04 | geography | hard | ✅ | Every LSOA has MSOA, LTLA21, region, LAD, sub-ICB, ICB and NHS region | {"blank_cells": {}} |
-| GEO-05 | geography | hard | ✅ | sicbl_cd nests within icb_cd | {"examples": [], "violations": 0} |
-| GEO-06 | geography | hard | ✅ | icb_cd nests within nhser_cd | {"examples": [], "violations": 0} |
-| GEO-07 | geography | hard | ✅ | msoa21cd nests within ltla21cd | {"examples": [], "violations": 0} |
-| GEO-08 | geography | hard | ✅ | ltla21cd nests within lad_cd | {"examples": [], "violations": 0} |
-| GEO-09 | geography | hard | ✅ | ltla21cd nests within rgn21cd | {"examples": [], "violations": 0} |
+| GEO-05 | geography | hard | ✅ | sicbl_code nests within icb_code | {"examples": [], "violations": 0} |
+| GEO-06 | geography | hard | ✅ | icb_code nests within nhser_code | {"examples": [], "violations": 0} |
+| GEO-07 | geography | hard | ✅ | msoa21_code nests within ltla21_code | {"examples": [], "violations": 0} |
+| GEO-08 | geography | hard | ✅ | ltla21_code nests within lad_code | {"examples": [], "violations": 0} |
+| GEO-09 | geography | hard | ✅ | ltla21_code nests within rgn21_code | {"examples": [], "violations": 0} |
 | GEO-10 | geography | soft/info | ✅ | LADs split across ICBs (informational) | {"examples": ["E06000060", "E06000063", "E06000064", "E06000065", "E07000180"], "lads_split": 5} |
 | GEO-11 | geography | hard | ✅ | Footprint is non-empty | {"footprint_lsoas": 33755, "mode": "england"} |
 | GEO-12 | geography | soft/info | ✅ | Focus ICB(s) summary (informational) | {"lads": 17, "lsoas": 1060, "ltla21s": 18, "msoa21s": 216, "sicbls": 8} |
@@ -79,18 +79,21 @@ Run `20261002T155325Z_d1033f90_6cc3e8e2`: **67 checks; 48 hard, 0 hard failures;
 | CAT-03 | catchments | hard | ✅ | Published proportions per MSOA sum to <= 1 | {"max": 0.997, "mean": 0.9776550466744457, "min": 0.881} |
 | CAT-04 | catchments | soft/info | ✅ | Exactly one first-past-the-post trust per MSOA | {"msoas_not_one": 0} |
 | CAT-05 | catchments | hard | ✅ | Bridge proportions sum to 1 per LSOA (published incl. UNASSIGNED; rescaled) | {"lsoas": 33755, "max_err": 2.220446049250313e-16} |
+| CAT-12 | catchments | hard | ✅ | Every acute trust has exactly one active ODS host-ICB link, and it is a current ICB | {"not_exactly_one": [], "trusts": 134, "unmapped_icb": []} |
+| CAT-13 | catchments | soft/info | ✅ | Host ICB agrees with the ICB of the trust's main-site LSOA (corroboration, informational) | {"agree": 134, "disagree": [], "of": 134} |
 | CAT-06 | catchments | hard | ✅ | Every bridge trust is in dim_trust; every focus trust is present | {"focus_missing": [], "missing_in_dim": []} |
 | CAT-07 | catchments | hard | ✅ | Σ trusts (published) + UNASSIGNED = total population (reconciles) | {"population": 58620101.0, "rescaled_total": 58620101.0, "trusts_plus_unassigned": 58620101.0, "unassigned": 1301102.1819999993} |
 | CAT-08 | catchments | soft/info | ✅ | Trust totals vs OHID T1 (informational; OHID uses mid-2022 populations) | {"all_pct_rescaled_vs_ohid": {"25%": 1.56, "50%": 3.78, "75%": 5.39, "count": 134.0, "max": 33.82, "mean": 1.93, "min": -54.49, "std": 9.87}, "focus": [{"modelled_published": 296555.8, "modelled_rescaled": 302786.3, "ohi … |
 | CAT-09 | catchments | soft/info | ✅ | Trust 5-group ethnicity vs OHID T5, both selection methods (informational) | {"focus": [{"diff_pp_A": -1.87, "diff_pp_B": -0.08, "diff_pp_M": -0.13, "diff_pp_O": -0.04, "diff_pp_W": 2.12, "selection_method": "All (5% and above)", "trust_code": "RTX"}, {"diff_pp_A": -6.54, "diff_pp_B": -0.3, "diff … |
 | CAT-10 | catchments | soft/info | ✅ | Trust mean IMD 2025 score vs OHID T6 (informational) | {"focus": [{"diff": 0.05, "modelled_imd_score": 20.05, "ohid_imd_score": 20.0, "trust_code": "RTX"}, {"diff": 0.86, "modelled_imd_score": 30.76, "ohid_imd_score": 29.9, "trust_code": "RXL"}, {"diff": -0.13, "modelled_imd … |
-| CAT-11 | catchments | soft/info | ✅ | Diagnostic: which geography's ethnic mix best reproduces OHID 'All (5% and above)' (informational) | {"best_level": "icb_cd", "best_mean_abs_diff_pp": 1.9, "lsoa_mean_abs_diff_pp": 2.47} |
-| OUT-01 | outputs | hard | ✅ | Referential integrity of the star schema | {"bridge.lsoa in dim_lsoa": true, "bridge.trust in dim_trust": true, "dim_lsoa unique": true, "fact.age in dim_age": true, "fact.eth19 in dim_ethnicity": true, "fact.lsoa in dim_lsoa": true} |
+| CAT-11 | catchments | soft/info | ✅ | Diagnostic: which geography's ethnic mix best reproduces OHID 'All (5% and above)' (informational) | {"best_level": "icb_code", "best_mean_abs_diff_pp": 1.9, "lsoa_mean_abs_diff_pp": 2.47} |
+| OUT-01 | outputs | hard | ✅ | Referential integrity of the star schema | {"bridge.lsoa in dim_lsoa": true, "bridge.trust in dim_trust": true, "dim_icb.nhser_code in dim_nhs_region": true, "dim_lsoa unique": true, "dim_lsoa.icb_code in dim_icb": true, "dim_lsoa.lad_code in dim_lad": true, "dim … |
 | OUT-02 | outputs | hard | ✅ | dim_lsoa has no missing values (every LSOA has geography and IoD) | {"missing_cells": 0} |
 | OUT-03 | outputs | hard | ✅ | ICB totals from fact = sum of dim_lsoa populations | {"icbs": 36, "max_abs_gap": 0.0} |
 | OUT-04 | outputs | hard | ✅ | Σ over trusts incl. UNASSIGNED = England total | {"population": 58620101.0, "trust_total": 58620101.0} |
+| OUT-07 | outputs | hard | ✅ | dim_lsoa shortcut keys agree with the geography hierarchy | {"icb_code vs sub-ICB parent": 0, "ltla21_code vs MSOA parent": 0} |
 | OUT-05 | outputs | hard | ✅ | fact CSVs (one per ICB) cover every fact row exactly once | {"files": 36, "rows": 116724790} |
-| OUT-06 | outputs | soft/info | ✅ | Output data hashes recorded (compare across runs for reproducibility) | {"bridge_lsoa_trust": "e25b5fad9d4bacab9bedd7192681cc303c69c89430c9ed297688f02929eed1b4", "dim_age": "3e20cb14f4b9674d74fafb6475097f84bf904e2d9b784caa6a76e397e6e371a8", "dim_ethnicity": "ea6de4ae4013510b8d073a2210dd9bf2b … |
+| OUT-06 | outputs | soft/info | ✅ | Output data hashes recorded (compare across runs for reproducibility) | {"bridge_lsoa_trust": "eb4e029c7c68fff44e1a86f7969b7e7233b8bedd14c63dc43b1f11ce4f84ec10", "dim_age": "3e20cb14f4b9674d74fafb6475097f84bf904e2d9b784caa6a76e397e6e371a8", "dim_ethnicity": "ea6de4ae4013510b8d073a2210dd9bf2b … |
 
 ## Key comparisons
 
@@ -172,13 +175,13 @@ Hypothesis test, regenerated every run. For each candidate geography, each LSOA'
 
 | ethnic_mix_level | trusts | mean_abs_diff_pp | median_abs_diff_pp | RXL_pct_A | RXL_ohid_pct_A | RXR_pct_A | RXR_ohid_pct_A | RXN_pct_A | RXN_ohid_pct_A | RTX_pct_A | RTX_ohid_pct_A |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| lsoa21cd | 128 | 2.47 | 0.91 | 1.96 | 8.50 | 22.70 | 10.76 | 8.91 | 8.80 | 1.97 | 3.84 |
-| msoa21cd | 128 | 2.47 | 0.91 | 1.96 | 8.50 | 22.70 | 10.76 | 8.91 | 8.80 | 1.97 | 3.84 |
-| ltla21cd | 128 | 2.29 | 0.92 | 1.98 | 8.50 | 21.28 | 10.76 | 9.13 | 8.80 | 2.00 | 3.84 |
-| utla21cd | 128 | 2.24 | 0.85 | 5.85 | 8.50 | 16.69 | 10.76 | 8.83 | 8.80 | 4.37 | 3.84 |
-| sicbl_cd | 128 | 2.11 | 0.80 | 2.00 | 8.50 | 21.48 | 10.76 | 9.15 | 8.80 | 2.08 | 3.84 |
-| icb_cd | 128 | 1.90 | 0.68 | 9.75 | 8.50 | 9.77 | 10.76 | 9.77 | 8.80 | 9.67 | 3.84 |
-| nhser_cd | 128 | 2.63 | 1.22 | 9.07 | 8.50 | 9.07 | 10.76 | 9.07 | 8.80 | 9.04 | 3.84 |
+| lsoa21_code | 128 | 2.47 | 0.91 | 1.96 | 8.50 | 22.70 | 10.76 | 8.91 | 8.80 | 1.97 | 3.84 |
+| msoa21_code | 128 | 2.47 | 0.91 | 1.96 | 8.50 | 22.70 | 10.76 | 8.91 | 8.80 | 1.97 | 3.84 |
+| ltla21_code | 128 | 2.29 | 0.92 | 1.98 | 8.50 | 21.28 | 10.76 | 9.13 | 8.80 | 2.00 | 3.84 |
+| utla21_code | 128 | 2.24 | 0.85 | 5.85 | 8.50 | 16.69 | 10.76 | 8.83 | 8.80 | 4.37 | 3.84 |
+| sicbl_code | 128 | 2.11 | 0.80 | 2.00 | 8.50 | 21.48 | 10.76 | 9.15 | 8.80 | 2.08 | 3.84 |
+| icb_code | 128 | 1.90 | 0.68 | 9.75 | 8.50 | 9.77 | 10.76 | 9.77 | 8.80 | 9.67 | 3.84 |
+| nhser_code | 128 | 2.63 | 1.22 | 9.07 | 8.50 | 9.07 | 10.76 | 9.07 | 8.80 | 9.04 | 3.84 |
 
 Reading: using our own LSOA mix gives the *largest* error. Smoothing the mix over large areas brings the figures closer to OHID (ICB best overall), but **no single geography reproduces OHID**. ICB averaging explains the central Lancashire trusts (RXL, RXR, RXN ≈ the L&SC average) but not Morecambe Bay (RTX). Meanwhile OHID's **first-past-the-post** ethnicity, built from the same MSOA ethnicity, matches ours to about 0.1 pp, and its T6 IMD (same 5% weighting) matches to within 1 point. So the inputs agree, and the difference lies in how OHID aggregated this one table. OHID doesn't publish the method. We treat it as **not comparable** and validate against FPTP instead (ADR-0019).
 

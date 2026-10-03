@@ -26,6 +26,7 @@ from pyspark.sql import types as T
 from lsc_pop import census, deprivation
 from lsc_pop.mappings import load_ethnicity_mapping
 from lsc_pop.ods import read_ods_sheets, sheet_to_frame
+from lsc_pop.ods_directory import read_relationships
 from lsc_pop.rollforward import _read_sheet
 
 from .params import Names
@@ -160,7 +161,7 @@ def seed_raw(spark, n: Names, streaming: bool = True) -> DataFrame:
         )
         parts.append(
             obs.select(
-                dims["ltla"].alias("ltla21cd"),
+                dims["ltla"].alias("ltla21_code"),
                 dims["ethnic_group_tb_20b"].cast("int").alias("eth_code"),
                 dims["sex"].cast("int").alias("sex_code"),
                 dims[dim].cast("int").alias("age_code"),
@@ -177,7 +178,10 @@ def seed_blocked_raw(spark, n: Names, streaming: bool = True) -> DataFrame:
     """LTLAs the ONS API blocked (disclosure control), per classification."""
     parts = [
         _seed_lines(spark, n, cls, streaming).select(
-            F.explode("blocked").alias("ltla21cd"), "classification", "_source_file", "_ingested_at"
+            F.explode("blocked").alias("ltla21_code"),
+            "classification",
+            "_source_file",
+            "_ingested_at",
         )
         for cls in SEED_FILES
     ]
@@ -188,7 +192,7 @@ def seed_requested_raw(spark, n: Names) -> DataFrame:
     """Areas requested per classification (for the 'returned + blocked = requested' check)."""
     parts = [
         _seed_lines(spark, n, cls, streaming=False).select(
-            F.explode("requested").alias("ltla21cd"), "classification"
+            F.explode("requested").alias("ltla21_code"), "classification"
         )
         for cls in SEED_FILES
     ]
@@ -196,7 +200,7 @@ def seed_requested_raw(spark, n: Names) -> DataFrame:
 
 
 def ts021_raw(spark, n: Names, cfg) -> DataFrame:
-    """TS021 (zipped wide CSV) → long rows: lsoa21cd, label, population (labels as published)."""
+    """TS021 (zipped wide CSV) → long rows: lsoa21_code, label, population (labels as published)."""
     sid, zname, member = census.TS021
     path = n.raw(sid, zname)
     with zipfile.ZipFile(path) as z:
@@ -204,7 +208,7 @@ def ts021_raw(spark, n: Names, cfg) -> DataFrame:
     long = wide.drop(columns=["date", "geography"]).melt(
         id_vars="geography code", var_name="label", value_name="population"
     )
-    long = long.rename(columns={"geography code": "lsoa21cd"})
+    long = long.rename(columns={"geography code": "lsoa21_code"})
     long["population"] = long["population"].astype("int64")
     return _from_pandas(spark, long, f"{path}!{member}")
 
@@ -229,7 +233,7 @@ def iod_raw(spark, n: Names, cfg) -> DataFrame:
     path = n.raw(d.source, d.file)
     raw = pd.read_csv(path, dtype={"LSOA code (2021)": str})
     rename = {c: deprivation._standard_name(c) for c in raw.columns}
-    rename = {k: v for k, v in rename.items() if v} | {"LSOA code (2021)": "lsoa21cd"}
+    rename = {k: v for k, v in rename.items() if v} | {"LSOA code (2021)": "lsoa21_code"}
     return _from_pandas(spark, raw[list(rename)].rename(columns=rename), path)
 
 
@@ -237,12 +241,12 @@ def mye_raw(spark, n: Names, cfg) -> DataFrame:
     """ONS mid-year LSOA estimates (S5) for the reference year: wide, as published."""
     path = n.raw(cfg.mye.source, cfg.mye.file)
     df = _read_sheet(Path(path), cfg.mye_sheet, cfg.mye.header_row)
-    df = df.rename(columns={"LSOA 2021 Code": "lsoa21cd", "Total": "total"})
-    cols = ["lsoa21cd", "total"] + [
+    df = df.rename(columns={"LSOA 2021 Code": "lsoa21_code", "Total": "total"})
+    cols = ["lsoa21_code", "total"] + [
         f"{s}{a}" for s in ("F", "M") for a in range(cfg.age.max_age + 1)
     ]
     out = df[cols].copy()
-    out["lsoa21cd"] = out["lsoa21cd"].astype(str)
+    out["lsoa21_code"] = out["lsoa21_code"].astype(str)
     out[cols[1:]] = out[cols[1:]].astype("float64")
     return _from_pandas(spark, out, f"{path}!{cfg.mye_sheet}")
 
@@ -251,10 +255,10 @@ def mye_broad_raw(spark, n: Names, cfg) -> DataFrame:
     """Accredited broad-age file (S5b), for the ROL-04 check."""
     path = n.raw("S5b", "sapelsoabroadage20222024.xlsx")
     df = _read_sheet(Path(path), cfg.mye_sheet, cfg.mye.header_row)
-    df = df.rename(columns={"LSOA 2021 Code": "lsoa21cd"})
-    keep = ["lsoa21cd"] + [c for c in df.columns if re.match(r"^[FM]\d", str(c))]
+    df = df.rename(columns={"LSOA 2021 Code": "lsoa21_code"})
+    keep = ["lsoa21_code"] + [c for c in df.columns if re.match(r"^[FM]\d", str(c))]
     out = df[keep].rename(columns={c: snake(c) for c in keep[1:]})
-    out["lsoa21cd"] = out["lsoa21cd"].astype(str)
+    out["lsoa21_code"] = out["lsoa21_code"].astype(str)
     out[out.columns[1:]] = out[out.columns[1:]].astype("float64")
     return _from_pandas(spark, out, f"{path}!{cfg.mye_sheet}")
 
@@ -280,6 +284,13 @@ def ohid_raw(spark, n: Names, cfg, table: str) -> DataFrame:
     frame = sheet_to_frame(_ohid_sheets(path)[OHID_SHEETS[table]], header_row=2)
     frame.columns = [snake(c) for c in frame.columns]
     return _from_pandas(spark, frame.astype(str), f"{path}!{OHID_SHEETS[table]}")
+
+
+def ods_trust_relationships_raw(spark, n: Names, cfg) -> DataFrame:
+    """Every relationship of every NHS trust in the ODS directory snapshot (S10), as published."""
+    host = cfg.catchments.host_icb
+    path = n.raw(host.source, host.file)
+    return _from_pandas(spark, read_relationships(path), path)
 
 
 def source_manifest(spark, n: Names) -> DataFrame:

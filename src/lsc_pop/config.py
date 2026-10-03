@@ -117,6 +117,15 @@ class Deprivation(_Strict):
     local_quintile: LocalQuintile = Field(default_factory=LocalQuintile)
 
 
+class HostIcb(_Strict):
+    """Trust -> host ICB from the ODS directory (S10; ADR-0025)."""
+
+    source: str = "S10"
+    file: str = "ods_nhs_trusts.jsonl.gz"
+    relationship: str = "RE5"  # ODS 'is located in the geography of'
+    target_role: str = "RO261"  # ODS role: Integrated Care Board
+
+
 class Catchments(_Strict):
     """Stage G trust catchments (ADR-0019)."""
 
@@ -124,6 +133,7 @@ class Catchments(_Strict):
     file: str = "nhs-acute-hospital-trust-catchment-populations-data_tables-april-2026.ods"
     catchment_year: int = 2024
     admission_type: Literal["All admissions"] = "All admissions"
+    host_icb: HostIcb = Field(default_factory=HostIcb)
 
 
 class Paths(_Strict):
@@ -141,7 +151,7 @@ class LookupSpec(_Strict):
     source: str  # source id in config/sources.yaml
     file: str  # file name under data/raw/<source>/
     vintage: str  # e.g. "2026-04"; recorded in outputs
-    key: str = "lsoa21cd"  # standard name of the join key (after renaming)
+    key: str = "lsoa21_code"  # standard name of the join key (after renaming)
     columns: dict[str, str]  # raw column name -> standard name (only these are kept)
 
     @model_validator(mode="after")
@@ -154,11 +164,27 @@ class LookupSpec(_Strict):
 
 
 REQUIRED_NHS_COLUMNS = {
-    "lsoa21cd", "lsoa21nm", "sicbl_cd", "sicbl_ods", "sicbl_nm", "icb_cd", "icb_ods", "icb_nm",
-    "nhser_cd", "nhser_nm", "lad_cd", "lad_nm",
-}  # fmt: skip
-REQUIRED_CENSUS_COLUMNS = {"lsoa21cd", "msoa21cd", "msoa21nm", "ltla21cd", "ltla21nm"}
-REQUIRED_REGION_COLUMNS = {"ltla21cd", "rgn21cd", "rgn21nm"}
+    "lsoa21_code",
+    "lsoa21_name",
+    "sicbl_code",
+    "sicbl_ods_code",
+    "sicbl_name",
+    "icb_code",
+    "icb_ods_code",
+    "icb_name",
+    "nhser_code",
+    "nhser_name",
+    "lad_code",
+    "lad_name",
+}
+REQUIRED_CENSUS_COLUMNS = {
+    "lsoa21_code",
+    "msoa21_code",
+    "msoa21_name",
+    "ltla21_code",
+    "ltla21_name",
+}
+REQUIRED_REGION_COLUMNS = {"ltla21_code", "rgn21_code", "rgn21_name"}
 
 
 class Geography(_Strict):

@@ -104,12 +104,12 @@ def test_builds_lookup_england(project_copy):
     ctx = _install(project_copy, _frames())
     lk = geography.run(ctx)
     assert list(lk.columns) == geography.OUTPUT_COLUMNS
-    assert lk["lsoa21cd"].tolist() == [r[0] for r in NHS_ROWS]  # sorted, Wales dropped
+    assert lk["lsoa21_code"].tolist() == [r[0] for r in NHS_ROWS]  # sorted, Wales dropped
     assert lk["in_footprint"].all()
     assert lk["in_focus_icb"].sum() == 3
     assert set(lk["nhs_geog_vintage"]) == {"2026-04"}
-    row = lk.set_index("lsoa21cd").loc["E01000003"]
-    assert (row["msoa21cd"], row["ltla21cd"], row["rgn21cd"]) == (
+    row = lk.set_index("lsoa21_code").loc["E01000003"]
+    assert (row["msoa21_code"], row["ltla21_code"], row["rgn21_code"]) == (
         "E02000002",
         "E07000031",
         "E12000002",
@@ -141,7 +141,7 @@ def test_icbs_footprint_mode(project_copy):
         d["footprint"]["icb_codes"] = ["E54000008"]
 
     lk = geography.run(_install(project_copy, _frames(), edit))
-    assert lk.loc[lk["in_footprint"], "lsoa21cd"].tolist() == [
+    assert lk.loc[lk["in_footprint"], "lsoa21_code"].tolist() == [
         "E01000004",
         "E01000005",
         "E01000006",
@@ -209,7 +209,7 @@ def test_new_lookup_vintage_is_config_only(project_copy):
 
     lk = geography.run(_install(project_copy, (nhs_df, census_df, region_df), edit))
     assert set(lk["nhs_geog_vintage"]) == {"2027-04"}
-    assert lk["icb_cd"].notna().all()
+    assert lk["icb_code"].notna().all()
 
 
 def test_column_mismatch_gives_actionable_error(project_copy):
@@ -241,10 +241,10 @@ def test_real_lookup(tmp_path):
         assert len(lk) == 33_755
         focus = lk[lk["in_focus_icb"]]
         assert len(focus) == 1_060
-        assert set(focus["icb_ods"]) == {"QE1"}
-        assert focus["sicbl_cd"].nunique() == 8
-        assert {"E07000027", "E07000031"} <= set(focus["ltla21cd"])  # Barrow, South Lakeland
-        assert lk["icb_cd"].nunique() == 36
+        assert set(focus["icb_ods_code"]) == {"QE1"}
+        assert focus["sicbl_code"].nunique() == 8
+        assert {"E07000027", "E07000031"} <= set(focus["ltla21_code"])  # Barrow, South Lakeland
+        assert lk["icb_code"].nunique() == 36
     finally:
         import shutil
 

@@ -31,3 +31,4 @@ Copy `template.md` to the next number. Never edit an accepted ADR's decision: su
 | [0022](0022-databricks-native-implementation.md) | Databricks-native implementation alongside the local pipeline | accepted |
 | [0023](0023-config-hash-excludes-paths.md) | Config hash excludes `paths` | accepted |
 | [0024](0024-databricks-parity-tolerances.md) | Parity tolerances (Databricks vs local) | accepted |
+| [0025](0025-snowflake-geography-host-icb-naming.md) | Snowflaked geography dimensions, trust host ICB, `_code`/`_name` column names | accepted |

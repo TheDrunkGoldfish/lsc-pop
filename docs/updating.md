@@ -108,7 +108,7 @@ ONS publishes a new **LSOA (2021) → Sub-ICB location → ICB → NHS region �
 usually each April. Example: April 2026 merged 42 ICBs into 36. These changes only affect **aggregation**: no
 population figure changes, but ICB / sub-ICB / LAD totals regroup.
 
-The lookup is fully config-driven (ADR-0014). Pipeline columns are vintage-free (`icb_cd`, `sicbl_cd`, `lad_cd`,
+The lookup is fully config-driven (ADR-0014). Pipeline columns are vintage-free (`icb_code`, `sicbl_code`, `lad_code`,
 …), and the vintage is stored in `nhs_geog_vintage` and the output metadata.
 
 ### Steps
@@ -133,19 +133,19 @@ The lookup is fully config-driven (ADR-0014). Pipeline columns are vintage-free 
        file: <file name>.csv
        vintage: "2027-04"
        columns:            # raw column -> standard name. Raw names carry the year suffix.
-         LSOA21CD: lsoa21cd
-         LSOA21NM: lsoa21nm
-         SICBL27CD: sicbl_cd
-         SICBL27CDH: sicbl_ods
-         SICBL27NM: sicbl_nm
-         ICB27CD: icb_cd
-         ICB27CDH: icb_ods
-         ICB27NM: icb_nm
-         NHSER27CD: nhser_cd
-         NHSER27CDH: nhser_ods
-         NHSER27NM: nhser_nm
-         LAD27CD: lad_cd
-         LAD27NM: lad_nm
+         LSOA21CD: lsoa21_code
+         LSOA21NM: lsoa21_name
+         SICBL27CD: sicbl_code
+         SICBL27CDH: sicbl_ods_code
+         SICBL27NM: sicbl_name
+         ICB27CD: icb_code
+         ICB27CDH: icb_ods_code
+         ICB27NM: icb_name
+         NHSER27CD: nhser_code
+         NHSER27CDH: nhser_ods_code
+         NHSER27NM: nhser_name
+         LAD27CD: lad_code
+         LAD27NM: lad_name
    ```
 
    - If ONS adds or drops a level (e.g. Cancer Alliance in place of NHS region), map only the columns listed above. Every
@@ -178,7 +178,12 @@ OHID says the catchment populations publication *"will be updated annually"*.
    header on the third row). Then update `config.yaml → catchments.{source, file, catchment_year}`.
 2. **Trust mergers or new ODS codes:** update `focus_trusts` in `config/config.yaml`. For example, if a OneLSC trust
    merges and gets a new code, swap the old code for the new one and note it in an ADR.
-3. Re-run (`uv run lsc-pop run`) and review checks CAT-01 to CAT-10 and the trust comparisons in
+3. **Host ICBs (S10).** The trust → ICB link comes from a live ODS directory snapshot. After ICB mergers or trust
+   changes, delete `data/raw/S10/ods_nhs_trusts.jsonl.gz` and its manifest entry deliberately, then
+   `uv run lsc-pop download -s S10` to take a new snapshot (update `release_date`/`edition` in `config/sources.yaml`).
+   CAT-12 fails if a trust no longer has exactly one active link to an ICB in the current lookup (S7), which usually
+   means S7 and S10 are out of step: update S7 first (section B).
+4. Re-run (`uv run lsc-pop run`) and review checks CAT-01 to CAT-13 and the trust comparisons in
    `validation_report.md`.
 
 ---

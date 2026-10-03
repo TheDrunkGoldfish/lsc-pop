@@ -4,6 +4,17 @@ All notable changes to the pipeline and its outputs. Changes that affect the num
 
 ## [Unreleased]
 
+### Snowflaked geography, trust host ICB and consistent column names (2026-10-03, ADR-0025)
+- **Breaking (published columns and tables; the numbers are unchanged).** Columns now end `_code` / `_name`
+  (`lsoa21cd` → `lsoa21_code`, `icb_nm` → `icb_name`, `icb_ods` → `icb_ods_code`, …) in both implementations, config
+  and docs. Raw upstream headers are unchanged.
+- New dimensions `dim_icb`, `dim_sub_icb`, `dim_nhs_region`, `dim_lad`, `dim_msoa`, `dim_ltla`, `dim_region`.
+  `dim_lsoa` keeps only keys to them (plus name, IoD, population); `in_footprint` / `in_focus_icb` moved to
+  `dim_icb` as `is_footprint` / `is_focus`. To split by ICB: `fact_population` → `dim_lsoa` → `dim_icb`.
+- `dim_trust.host_icb_code`: the one ICB each trust is located in, from the NHS ODS directory (new source S10,
+  `ods_api_orgs` download kind). Checks CAT-12, CAT-13 (new), OUT-01 (extended), OUT-07 (new). Parity covers the new
+  tables.
+
 ### Phase 9: Databricks-native implementation (2026-10-02)
 - `databricks/`: a Databricks Asset Bundle with dev, test and prod targets. Catalog, schemas and Volume are
   variables pointing at existing objects. It defines a Lakeflow Job (ingest, then pipeline) and a serverless Lakeflow

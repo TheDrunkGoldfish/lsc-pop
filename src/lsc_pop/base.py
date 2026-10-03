@@ -13,7 +13,7 @@
 3. **Validate**: margins reproduced (BAS-01/02), totals (BAS-03), comparison with raw RM032 and
    TS021 (BAS-04/05) and with the LTLA seed (BAS-06), non-negative/finite (BAS-07).
 
-Output: ``data/interim/base2021/base`` (dense cube, dims lsoa21cd × sex × age × eth19), plus
+Output: ``data/interim/base2021/base`` (dense cube, dims lsoa21_code × sex × age × eth19), plus
 ``seed`` and ``seed_source`` tables.
 """
 
@@ -35,7 +35,7 @@ STAGE = "base"
 OUT_DIR = "base2021"
 SEXES = ["F", "M"]
 ETH = list(range(1, 20))
-DIMS = ("lsoa21cd", "sex", "age", "eth19")
+DIMS = ("lsoa21_code", "sex", "age", "eth19")
 
 
 def _out(cfg: Config, name: str):
@@ -66,24 +66,24 @@ def seed_array(
     Shared by the local stage (``build_seed``) and the Databricks pipeline.
     """
     n_age = cfg.age.max_age + 1
-    ltlas = sorted(lookup["ltla21cd"].unique())
+    ltlas = sorted(lookup["ltla21_code"].unique())
     li = {c: i for i, c in enumerate(ltlas)}
     si = {s: i for i, s in enumerate(SEXES)}
     seed = np.full((len(ltlas), 2, len(ETH), n_age), np.nan)
     source = {}
     idx = (
-        seed91["ltla21cd"].map(li).to_numpy(),
+        seed91["ltla21_code"].map(li).to_numpy(),
         seed91["sex"].map(si).to_numpy(),
         seed91["eth19"].to_numpy() - 1,
         seed91["age"].to_numpy(),
     )
     seed[idx] = seed91["population"].to_numpy(float)
-    for c in seed91["ltla21cd"].unique():
+    for c in seed91["ltla21_code"].unique():
         source[c] = "age91"
 
-    blocked91 = set(blocked.loc[blocked["classification"] == "age_91a", "ltla21cd"])
-    blocked23 = set(blocked.loc[blocked["classification"] == "age_23a", "ltla21cd"])
-    region = lookup.drop_duplicates("ltla21cd").set_index("ltla21cd")["rgn21cd"]
+    blocked91 = set(blocked.loc[blocked["classification"] == "age_91a", "ltla21_code"])
+    blocked23 = set(blocked.loc[blocked["classification"] == "age_23a", "ltla21_code"])
+    region = lookup.drop_duplicates("ltla21_code").set_index("ltla21_code")["rgn21_code"]
     a2k = age_to_code(_classes(cfg), "age_23a", cfg.age.max_age).to_numpy()
 
     for c in sorted(blocked91 - blocked23):
@@ -95,7 +95,7 @@ def seed_array(
         denom = k_tot[:, :, a2k]
         width = np.bincount(a2k)[a2k]
         within = np.where(denom > 0, shape / np.where(denom > 0, denom, 1), 1.0 / width)
-        own = seed23[seed23["ltla21cd"] == c]
+        own = seed23[seed23["ltla21_code"] == c]
         c23 = np.zeros((2, len(ETH), a2k.max() + 1))
         c23[own["sex"].map(si), own["eth19"] - 1, own["age23"]] = own["population"]
         seed[li[c]] = c23[:, :, a2k] * within
@@ -113,7 +113,7 @@ def seed_array(
     missing = [c for c in ltlas if c not in source]
     if missing or np.isnan(seed).any():
         raise ValueError(f"seed incomplete for LTLAs {missing[:5]}")
-    src = pd.DataFrame({"ltla21cd": ltlas, "seed_source": [source[c] for c in ltlas]})
+    src = pd.DataFrame({"ltla21_code": ltlas, "seed_source": [source[c] for c in ltlas]})
     return seed, ltlas, src
 
 
@@ -135,9 +135,9 @@ def build_seed(
             "seed",
             Cube(
                 seed,
-                ("ltla21cd", "sex", "eth19", "age"),
+                ("ltla21_code", "sex", "eth19", "age"),
                 {
-                    "ltla21cd": ltlas,
+                    "ltla21_code": ltlas,
                     "sex": SEXES,
                     "eth19": ETH,
                     "age": list(range(cfg.age.max_age + 1)),
@@ -160,11 +160,11 @@ def margin_arrays(cfg: Config, margins: pd.DataFrame, lsoas: list[str]):
     e = margins[margins["kind"] == "eth19"]
     a = margins[margins["kind"] == "age"]
     eth = np.zeros((len(lsoas), 2, 5, len(ETH)))
-    eth[li.get_indexer(e["lsoa21cd"]), e["sex"].map(si), e["band"] - 1, e["key"] - 1] = e[
+    eth[li.get_indexer(e["lsoa21_code"]), e["sex"].map(si), e["band"] - 1, e["key"] - 1] = e[
         "population"
     ]
     age = np.zeros((len(lsoas), 2, n_age))
-    age[li.get_indexer(a["lsoa21cd"]), a["sex"].map(si), a["key"]] = a["population"]
+    age[li.get_indexer(a["lsoa21_code"]), a["sex"].map(si), a["key"]] = a["population"]
     return eth, age
 
 
@@ -278,14 +278,14 @@ def validate_base(ctx, base, eth_m, age_m, rm032, ts021, seed91, lookup, lsoas) 
     si = {s: i for i, s in enumerate(SEXES)}
     raw = np.zeros_like(eth_m)
     raw[
-        li.get_indexer(rm032["lsoa21cd"]),
+        li.get_indexer(rm032["lsoa21_code"]),
         rm032["sex"].map(si),
         rm032["band"] - 1,
         rm032["eth19"] - 1,
     ] = rm032["population"]
     out["vs_raw_rm032_lsoa_sex_band_eth"] = _dist(pd.Series((by_band - raw).ravel()))
     ts = np.zeros((len(lsoas), len(ETH)))
-    ts[li.get_indexer(ts021["lsoa21cd"]), ts021["eth19"] - 1] = ts021["population"]
+    ts[li.get_indexer(ts021["lsoa21_code"]), ts021["eth19"] - 1] = ts021["population"]
     out["vs_ts021_lsoa_eth"] = _dist(pd.Series((base.sum((1, 2)) - ts).ravel()))
     eth_tot = base.sum((0, 1, 2))
     ts_tot = ts.sum(0)
@@ -315,8 +315,8 @@ def validate_base(ctx, base, eth_m, age_m, rm032, ts021, seed91, lookup, lsoas) 
     # LTLA aggregate vs S3 seed at LTLA × sex × eth × single year (returned LTLAs only).
     comp = ltla_comparison(base, lookup, lsoas, seed91)
     out["vs_seed_ltla_sex_eth_age"] = _dist(comp["base"] - comp["seed"], comp["seed"])
-    foc = set(lookup.loc[lookup["in_focus_icb"], "ltla21cd"])
-    fc = comp[comp["ltla21cd"].isin(foc)]
+    foc = set(lookup.loc[lookup["in_focus_icb"], "ltla21_code"])
+    fc = comp[comp["ltla21_code"].isin(foc)]
     out["vs_seed_focus_ltla_sex_eth_age"] = _dist(fc["base"] - fc["seed"], fc["seed"])
     check(
         ctx,
@@ -334,14 +334,14 @@ def validate_base(ctx, base, eth_m, age_m, rm032, ts021, seed91, lookup, lsoas) 
 
 
 def ltla_comparison(base, lookup, lsoas, seed91) -> pd.DataFrame:
-    lk = lookup.set_index("lsoa21cd").loc[lsoas, "ltla21cd"].to_numpy()
+    lk = lookup.set_index("lsoa21_code").loc[lsoas, "ltla21_code"].to_numpy()
     codes, inv = np.unique(lk, return_inverse=True)
     agg = np.zeros((len(codes),) + base.shape[1:])
     np.add.at(agg, inv, base)
     si = {s: i for i, s in enumerate(SEXES)}
     ci = pd.Index(codes)
     s = seed91
-    vals = agg[ci.get_indexer(s["ltla21cd"]), s["sex"].map(si), s["age"], s["eth19"] - 1]
+    vals = agg[ci.get_indexer(s["ltla21_code"]), s["sex"].map(si), s["age"], s["eth19"] - 1]
     return s.assign(base=vals).rename(columns={"population": "seed"})
 
 
@@ -353,7 +353,7 @@ def ltla_comparison(base, lookup, lsoas, seed91) -> pd.DataFrame:
 def floor_sensitivity(ctx, seed, ltla_of_lsoa, eth_m, age_m, lookup, lsoas, seed91) -> pd.DataFrame:
     """Refit the focus-ICB LSOAs with each floor (and a uniform seed); compare with S3 at LTLA."""
     cfg = ctx.cfg
-    focus = lookup.set_index("lsoa21cd").loc[lsoas, "in_focus_icb"].to_numpy()
+    focus = lookup.set_index("lsoa21_code").loc[lsoas, "in_focus_icb"].to_numpy()
     idx = np.flatnonzero(focus)
     sub_l = [lsoas[i] for i in idx]
     rows, fits = [], {}
@@ -371,7 +371,9 @@ def floor_sensitivity(ctx, seed, ltla_of_lsoa, eth_m, age_m, lookup, lsoas, seed
         )
         fits[name] = b
         comp = ltla_comparison(b, lookup, sub_l, seed91)
-        comp = comp[comp["ltla21cd"].isin(set(lookup.loc[lookup["in_focus_icb"], "ltla21cd"]))]
+        comp = comp[
+            comp["ltla21_code"].isin(set(lookup.loc[lookup["in_focus_icb"], "ltla21_code"]))
+        ]
         d = comp["base"] - comp["seed"]
         rows.append(
             {
@@ -405,13 +407,13 @@ def run(ctx: RunContext) -> dict:
 
     cfg = ctx.cfg
     lookup = load_lookup(cfg)
-    lsoas = lookup["lsoa21cd"].tolist()
+    lsoas = lookup["lsoa21_code"].tolist()
     rd = lambda n: pd.read_parquet(_interim(cfg, n).with_suffix(".parquet"))  # noqa: E731
     seed91, seed23, blocked = rd("seed_age91"), rd("seed_age23"), rd("seed_blocked")
     margins, rm032, ts021 = rd("margins"), rd("rm032"), rd("ts021")
 
     seed, ltlas, seed_src = build_seed(ctx, seed91, seed23, blocked, lookup)
-    ltla_of_lsoa = pd.Index(ltlas).get_indexer(lookup["ltla21cd"])
+    ltla_of_lsoa = pd.Index(ltlas).get_indexer(lookup["ltla21_code"])
     eth_m, age_m = margin_arrays(cfg, margins, lsoas)
 
     base, diag = fit_base(ctx, seed, ltla_of_lsoa, eth_m, age_m, cfg.ipf.seed_floor)
@@ -442,7 +444,7 @@ def run(ctx: RunContext) -> dict:
     cube = Cube(
         base,
         DIMS,
-        {"lsoa21cd": lsoas, "sex": SEXES, "age": list(range(cfg.age.max_age + 1)), "eth19": ETH},
+        {"lsoa21_code": lsoas, "sex": SEXES, "age": list(range(cfg.age.max_age + 1)), "eth19": ETH},
     )
     with logged_step(ctx, "base.write") as step:
         step.output_cube("base2021", cube)

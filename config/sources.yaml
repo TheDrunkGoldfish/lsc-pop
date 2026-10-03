@@ -274,3 +274,22 @@ sources:
       - "RBN (Mersey and West Lancashire Teaching Hospitals) covers former Southport & Ormskirk activity. RW5 (LSCFT) is not included (it isn't an acute trust)."
       - "Large ODS (content.xml ~550 MB uncompressed). Pandas/odfpy is very slow, so the Phase 7 reader should use a streaming XML parser."
       - "The file was replaced silently on 2026-05-29 with no change note. The internal 'Published 28 April 2026' doesn't match gov.uk's dates."
+
+  - id: S10
+    title: "NHS Organisation Data Service (ODS) directory: active NHS trusts and their relationships"
+    role: "Trust -> host ICB link (dim_trust.host_icb_code; ADR-0025)"
+    publisher: "NHS England (ODS Organisation Reference Data API)"
+    landing_page: "https://digital.nhs.uk/services/organisation-data-service/guidance-for-developers/organisation-endpoint"
+    release_date: "2026-10-03"
+    edition: "Live directory, queried 2026-10-03 (no versioned release; the SHA-256 identifies the snapshot)"
+    reference_date: "2026-10-03"
+    geography: "NHS trusts (ODS primary role RO197), England"
+    status: other
+    files:
+      - name: ods_nhs_trusts.jsonl.gz
+        url: "https://directory.spineservices.nhs.uk/ORD/2-0-0/organisations?PrimaryRoleId=RO197&Status=Active&Limit=1000"
+        kind: ods_api_orgs
+        description: "One full ODS organisation record per active NHS trust (search PrimaryRoleId=RO197), as returned by the API, sorted by organisation code."
+    quirks:
+      - "ODS has no 'reports to' relationship for trusts: NHS trusts are independent bodies. RE5 'is located in the geography of' gives exactly one ICB (RO261) per trust and is used as the host ICB. RE8 'is partner to' gives one or more ICBs and is not used (partly stale after the April 2026 ICB mergers)."
+      - "The directory is live and unversioned: a re-download after the manifest entry is removed can differ. The ICB ODS codes are matched to the ICB lookup (S7) by ODS code."

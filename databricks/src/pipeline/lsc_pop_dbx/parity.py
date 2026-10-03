@@ -6,7 +6,7 @@ uploaded to ``<volume>/reference/`` (the ``tables/`` folder of a local run).
 
 Tolerances:
 
-* ``fact_population``: every cell matched on (lsoa21cd, sex, age, eth19);
+* ``fact_population``: every cell matched on (lsoa21_code, sex, age, eth19);
   |difference| ≤ 1e-6 persons. Hash equality isn't expected: IPF fitted LTLA by LTLA converges
   in a different number of iterations than one national batch, and Spark sums in a different
   order.
@@ -19,11 +19,18 @@ from dataclasses import dataclass, field
 
 FACT_TOLERANCE = 1e-6
 KEYS = {
-    "dim_lsoa": ["lsoa21cd"],
+    "dim_lsoa": ["lsoa21_code"],
     "dim_ethnicity": ["eth19"],
     "dim_age": ["age"],
     "dim_trust": ["trust_code"],
-    "bridge_lsoa_trust": ["lsoa21cd", "trust_code"],
+    "dim_region": ["rgn21_code"],
+    "dim_ltla": ["ltla21_code"],
+    "dim_msoa": ["msoa21_code"],
+    "dim_lad": ["lad_code"],
+    "dim_nhs_region": ["nhser_code"],
+    "dim_icb": ["icb_code"],
+    "dim_sub_icb": ["sicbl_code"],
+    "bridge_lsoa_trust": ["lsoa21_code", "trust_code"],
 }
 
 
@@ -37,11 +44,11 @@ class ParityResult:
 def compare_fact(spark, gold_table: str, reference_parquet: str) -> ParityResult:
     from pyspark.sql import functions as F
 
-    sp = spark.read.table(gold_table).select("lsoa21cd", "sex", "age", "eth19", "population")
+    sp = spark.read.table(gold_table).select("lsoa21_code", "sex", "age", "eth19", "population")
     ref = spark.read.parquet(reference_parquet).select(
-        "lsoa21cd", "sex", "age", "eth19", F.col("population").alias("reference")
+        "lsoa21_code", "sex", "age", "eth19", F.col("population").alias("reference")
     )
-    j = sp.join(ref, ["lsoa21cd", "sex", "age", "eth19"], "full_outer")
+    j = sp.join(ref, ["lsoa21_code", "sex", "age", "eth19"], "full_outer")
     r = (
         j.agg(
             F.count("*").alias("rows"),
@@ -57,6 +64,10 @@ def compare_fact(spark, gold_table: str, reference_parquet: str) -> ParityResult
     )
     ok = r["unmatched"] == 0 and (r["max_abs_diff"] or 0) <= FACT_TOLERANCE
     return ParityResult("fact_population", ok, r)
+
+
+def _text(s):
+    return s.astype(object).where(s.notna(), "<null>").astype(str)
 
 
 def compare_dimension(
@@ -89,10 +100,10 @@ def compare_dimension(
             d = float((x.astype(float) - y.astype(float)).abs().max())
             if not d <= 1e-6:
                 details["mismatched_columns"][c] = d
-        elif (x.astype(str).values != y.astype(str).values).any():
-            details["mismatched_columns"][c] = int(
-                (x.astype(str).values != y.astype(str).values).sum()
-            )
+        else:
+            xs, ys = _text(x), _text(y)  # nulls compare equal, whether None, NaN or NA
+            if (xs.values != ys.values).any():
+                details["mismatched_columns"][c] = int((xs.values != ys.values).sum())
     ok = (
         not details["mismatched_columns"]
         and not details["only_gold"]

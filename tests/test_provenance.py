@@ -25,7 +25,7 @@ def ctx(cfg) -> RunContext:
 def df() -> pd.DataFrame:
     return pd.DataFrame(
         {
-            "lsoa21cd": ["E01000001", "E01000001", "E01000002", "E01000002"],
+            "lsoa21_code": ["E01000001", "E01000001", "E01000002", "E01000002"],
             "sex": ["F", "M", "F", "M"],
             "population": [10.0, 12.0, 5.5, 4.5],
         }
@@ -48,7 +48,7 @@ def test_run_context_layout(ctx, cfg):
 def test_context_manager_records_rows_and_totals(ctx, df):
     with logged_step(ctx, "demo", params={"k": 1}) as step:
         step.input("in", df)
-        out = df[df["lsoa21cd"] == "E01000001"]
+        out = df[df["lsoa21_code"] == "E01000001"]
         step.drop(2, "not E01000001")
         step.note("filtered")
         step.output("out", out)
@@ -102,7 +102,7 @@ def test_no_population_column(ctx):
 
 
 def test_hash_dataframe_ignores_column_order(df):
-    assert hash_dataframe(df) == hash_dataframe(df[["population", "sex", "lsoa21cd"]])
+    assert hash_dataframe(df) == hash_dataframe(df[["population", "sex", "lsoa21_code"]])
 
 
 def test_hash_dataframe_sensitive_to_values_and_dtype(df):

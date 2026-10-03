@@ -3,28 +3,38 @@
 -- Databricks example:  CREATE TABLE fact_population USING PARQUET LOCATION '<path>/fact_population.parquet';
 
 CREATE TABLE fact_population (
-  lsoa21cd        STRING   NOT NULL,  -- FK dim_lsoa
+  lsoa21_code     STRING   NOT NULL,  -- FK dim_lsoa
   sex             STRING   NOT NULL,  -- 'F' | 'M'
   age             SMALLINT NOT NULL,  -- 0..90 (90 = 90+); FK dim_age
   eth19           SMALLINT NOT NULL,  -- 1..19; FK dim_ethnicity
   population      DOUBLE   NOT NULL,  -- unrounded; sums to ONS mid-year per lsoa x sex x age
   reference_year  SMALLINT NOT NULL   -- e.g. 2024 (30 June); lets later mid-years be appended
 );
--- dim_lsoa (1 row per LSOA 2021): geography (icb_cd, sicbl_cd, lad_cd, nhser_cd, msoa21cd, ltla21cd,
---   rgn21cd + names, nhs_geog_vintage), IoD 2025 (imd_score/rank/decile, domain scores/ranks/deciles),
---   imd_quintile, core20, imd_local_quintile, in_focus_icb, population_mid<year>.
+-- dim_lsoa (1 row per LSOA 2021): lsoa21_name; keys to the geography levels (msoa21_code, ltla21_code,
+--   lad_code, sicbl_code, icb_code); nhs_geog_vintage; IoD 2025 (imd_score/rank/decile, domain
+--   scores/ranks/deciles), imd_quintile, core20, imd_local_quintile; population_mid<year>.
+-- Geography is snowflaked off dim_lsoa (names and flags live once, in the level's own table):
+--   dim_msoa (msoa21_code, msoa21_name, ltla21_code) -> dim_ltla (ltla21_code, ltla21_name, rgn21_code)
+--     -> dim_region (rgn21_code, rgn21_name);   dim_lad (lad_code, lad_name);
+--   dim_sub_icb (sicbl_code, sicbl_ods_code, sicbl_name, icb_code) -> dim_icb (icb_code, icb_ods_code,
+--     icb_name, nhser_code, is_footprint, is_focus) -> dim_nhs_region (nhser_code, nhser_ods_code, nhser_name).
 -- dim_ethnicity (eth19 -> code_6/label_6, code_5/label_5), dim_age (age_5yr, age_10yr, census_band_rm032),
--- dim_trust (trust_code, trust_name, trust_type, is_focus; includes 'UNASSIGNED'),
--- bridge_lsoa_trust (lsoa21cd, msoa21cd, trust_code, proportion_published, proportion_rescaled, fptp).
+-- dim_trust (trust_code, trust_name, trust_type, is_focus, host_icb_code; includes 'UNASSIGNED', whose
+--   host_icb_code is NULL),
+-- bridge_lsoa_trust (lsoa21_code, msoa21_code, trust_code, proportion_published, proportion_rescaled, fptp).
+-- Two different trust/ICB relationships: the CATCHMENT (bridge_lsoa_trust x dim_lsoa.icb_code: where a
+-- trust's patients live, many ICBs per trust) and the HOST ICB (dim_trust.host_icb_code: the one ICB the
+-- trust is located in, per the NHS ODS directory; not a reporting line, trusts are independent bodies).
 
 -- 1. ICB x 6 ethnic groups x 5-year bands
-SELECT l.icb_nm, e.label_6, a.age_5yr, a.age_5yr_sort, SUM(f.population) AS population
+SELECT i.icb_name, e.label_6, a.age_5yr, a.age_5yr_sort, SUM(f.population) AS population
 FROM fact_population f
-JOIN dim_lsoa l USING (lsoa21cd)
+JOIN dim_lsoa l USING (lsoa21_code)
+JOIN dim_icb i USING (icb_code)
 JOIN dim_ethnicity e USING (eth19)
 JOIN dim_age a USING (age)
-GROUP BY l.icb_nm, e.label_6, a.age_5yr, a.age_5yr_sort
-ORDER BY l.icb_nm, e.label_6, a.age_5yr_sort;
+GROUP BY i.icb_name, e.label_6, a.age_5yr, a.age_5yr_sort
+ORDER BY i.icb_name, e.label_6, a.age_5yr_sort;
 
 -- 2. Acute trust catchment population by ethnic group (published OHID shares; 'UNASSIGNED' holds
 --    the suppressed remainder). Use proportion_rescaled for catchments that include everyone.
@@ -32,7 +42,7 @@ SELECT t.trust_name, e.label_6,
        SUM(f.population * b.proportion_published) AS catchment_published,
        SUM(f.population * b.proportion_rescaled)  AS catchment_rescaled
 FROM fact_population f
-JOIN bridge_lsoa_trust b USING (lsoa21cd)
+JOIN bridge_lsoa_trust b USING (lsoa21_code)
 JOIN dim_trust t USING (trust_code)
 JOIN dim_ethnicity e USING (eth19)
 WHERE t.is_focus
@@ -40,6 +50,27 @@ GROUP BY t.trust_name, e.label_6;
 
 -- 3. L&SC population by within-ICB IMD quintile and ethnic group; Core20 share
 SELECT l.imd_local_quintile, e.label_6, SUM(f.population) AS population
-FROM fact_population f JOIN dim_lsoa l USING (lsoa21cd) JOIN dim_ethnicity e USING (eth19)
-WHERE l.in_focus_icb
+FROM fact_population f
+JOIN dim_lsoa l USING (lsoa21_code)
+JOIN dim_icb i USING (icb_code)
+JOIN dim_ethnicity e USING (eth19)
+WHERE i.is_focus
 GROUP BY l.imd_local_quintile, e.label_6;
+
+-- 4. Trust populations split by ICB, two ways. (a) by catchment: where the trust's patients live;
+--    (b) by hierarchy: all of a trust's catchment attributed to its single host ICB.
+SELECT t.trust_name, i.icb_name AS lsoa_icb, SUM(f.population * b.proportion_published) AS catchment_population
+FROM fact_population f
+JOIN bridge_lsoa_trust b USING (lsoa21_code)
+JOIN dim_trust t USING (trust_code)
+JOIN dim_lsoa l USING (lsoa21_code)
+JOIN dim_icb i ON i.icb_code = l.icb_code
+WHERE t.is_focus
+GROUP BY t.trust_name, i.icb_name;
+
+SELECT h.icb_name AS host_icb, SUM(f.population * b.proportion_published) AS catchment_population
+FROM fact_population f
+JOIN bridge_lsoa_trust b USING (lsoa21_code)
+JOIN dim_trust t USING (trust_code)
+JOIN dim_icb h ON h.icb_code = t.host_icb_code
+GROUP BY h.icb_name;

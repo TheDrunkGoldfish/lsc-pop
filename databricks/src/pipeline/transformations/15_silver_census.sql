@@ -7,7 +7,7 @@ CREATE OR REFRESH MATERIALIZED VIEW rm032 (
   CONSTRAINT non_negative EXPECT (population >= 0) ON VIOLATION FAIL UPDATE
 )
 COMMENT 'Census 2021 RM032: LSOA x sex x RM032 band (1-5) x 19 ethnic groups (S1, as published; all-groups total rows removed).'
-AS SELECT GEOGRAPHY_CODE AS lsoa21cd,
+AS SELECT GEOGRAPHY_CODE AS lsoa21_code,
           CASE C_SEX WHEN 1 THEN 'F' WHEN 2 THEN 'M' END AS sex,
           C2021_AGE_6 AS band, C2021_ETH_20 AS eth19, OBS_VALUE AS population
    FROM ${lsc_pop.schema_bronze}.rm032_raw
@@ -18,7 +18,7 @@ CREATE OR REFRESH MATERIALIZED VIEW rm200 (
   CONSTRAINT non_negative EXPECT (population >= 0) ON VIOLATION FAIL UPDATE
 )
 COMMENT 'Census 2021 RM200: LSOA x sex x single year of age 0-90+ (S2; Nomis age code - 1).'
-AS SELECT GEOGRAPHY_CODE AS lsoa21cd,
+AS SELECT GEOGRAPHY_CODE AS lsoa21_code,
           CASE C_SEX WHEN 1 THEN 'F' WHEN 2 THEN 'M' END AS sex,
           C2021_AGE_92 - 1 AS age, OBS_VALUE AS population
    FROM ${lsc_pop.schema_bronze}.rm200_raw
@@ -28,36 +28,36 @@ CREATE OR REFRESH MATERIALIZED VIEW ts021 (
   CONSTRAINT non_negative EXPECT (population >= 0) ON VIOLATION FAIL UPDATE
 )
 COMMENT 'Census 2021 TS021: LSOA x 19 ethnic groups (S4), validation only.'
-AS SELECT t.lsoa21cd, m.eth19, t.population
+AS SELECT t.lsoa21_code, m.eth19, t.population
    FROM ${lsc_pop.schema_bronze}.ts021_raw t
    JOIN (SELECT concat('Ethnic group: ', label_19) AS label, eth19 FROM map_ethnicity) m ON t.label = m.label
-   WHERE t.lsoa21cd LIKE 'E%';
+   WHERE t.lsoa21_code LIKE 'E%';
 
 CREATE OR REFRESH MATERIALIZED VIEW seed_age91 (
   CONSTRAINT non_negative EXPECT (population >= 0) ON VIOLATION FAIL UPDATE
 )
 COMMENT 'IPF seed: LTLA 2021 x 19 ethnic groups x sex x single year (S3, ONS custom-dataset API).'
-AS SELECT ltla21cd, eth_code AS eth19, CASE sex_code WHEN 1 THEN 'F' WHEN 2 THEN 'M' END AS sex,
+AS SELECT ltla21_code, eth_code AS eth19, CASE sex_code WHEN 1 THEN 'F' WHEN 2 THEN 'M' END AS sex,
           age_code AS age, population
    FROM ${lsc_pop.schema_bronze}.seed_raw WHERE classification = 'age_91a' AND eth_code > 0;
 
 CREATE OR REFRESH MATERIALIZED VIEW seed_age23
 COMMENT 'IPF seed fallback: LTLA 2021 x 19 ethnic groups x sex x 23 age categories (S3).'
-AS SELECT ltla21cd, eth_code AS eth19, CASE sex_code WHEN 1 THEN 'F' WHEN 2 THEN 'M' END AS sex,
+AS SELECT ltla21_code, eth_code AS eth19, CASE sex_code WHEN 1 THEN 'F' WHEN 2 THEN 'M' END AS sex,
           age_code AS age23, population
    FROM ${lsc_pop.schema_bronze}.seed_raw WHERE classification = 'age_23a' AND eth_code > 0;
 
 CREATE OR REFRESH MATERIALIZED VIEW seed_blocked
 COMMENT 'LTLAs blocked by ONS disclosure control in the seed queries (ADR-0011).'
-AS SELECT DISTINCT ltla21cd, classification FROM ${lsc_pop.schema_bronze}.seed_blocked_raw;
+AS SELECT DISTINCT ltla21_code, classification FROM ${lsc_pop.schema_bronze}.seed_blocked_raw;
 
 CREATE OR REFRESH MATERIALIZED VIEW mye (
   CONSTRAINT valid_codes EXPECT (sex IN ('F', 'M') AND age BETWEEN 0 AND 90) ON VIOLATION FAIL UPDATE,
   CONSTRAINT non_negative_integer EXPECT (population >= 0 AND population = round(population)) ON VIOLATION FAIL UPDATE
 )
 COMMENT 'ONS mid-year LSOA estimates (S5) for the reference year: LSOA x sex x single year (supporting information).'
-AS SELECT lsoa21cd, substr(col, 1, 1) AS sex, CAST(substr(col, 2) AS INT) AS age, population
-   FROM (SELECT * FROM ${lsc_pop.schema_bronze}.mye_raw WHERE lsoa21cd LIKE 'E%')
+AS SELECT lsoa21_code, substr(col, 1, 1) AS sex, CAST(substr(col, 2) AS INT) AS age, population
+   FROM (SELECT * FROM ${lsc_pop.schema_bronze}.mye_raw WHERE lsoa21_code LIKE 'E%')
    UNPIVOT (population FOR col IN (
      F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
      F13, F14, F15, F16, F17, F18, F19, F20, F21, F22, F23, F24, F25,

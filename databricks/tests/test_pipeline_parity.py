@@ -69,7 +69,7 @@ def test_databricks_pipeline_matches_local(project, spark, monkeypatch):
 
     results = compare_all(spark, lambda t: f"gold.{t}", str(run / "tables"), 2024)
     failed = [(r.table, r.details) for r in results if not r.passed]
-    assert not failed, failed
+    assert not failed, str(failed)
 
     sens = spark.read.table("audit.sensitivity").toPandas()
     assert set(sens.variant) == {"cohort", "static", "cohort_newborn_0_4"}

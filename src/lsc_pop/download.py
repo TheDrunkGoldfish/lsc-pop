@@ -4,7 +4,7 @@ Sources are registered in ``config/sources.yaml`` (what to fetch and why). This 
 file once into ``data/raw/<source_id>/<file name>`` and records URL, release date, retrieved-at,
 size and SHA-256 in ``data/manifest.json``.
 
-Three fetch kinds:
+Four fetch kinds:
 
 * ``http``: a single file, saved byte-for-byte.
 * ``nomis_paged``: a Nomis API CSV query. Nomis returns at most ``page_size`` rows per call, so the
@@ -15,6 +15,11 @@ Three fetch kinds:
   row cap. Every response is stored verbatim, one JSON object per line, in a gzip file (mtime 0).
   Each line also carries the batch's requested area codes and the codes the API blocked
   (disclosure control).
+* ``ods_api_orgs``: an NHS ODS (Organisation Data Service) directory search. Each organisation the
+  search returns is then fetched in full (its relationships are only in the full record). Every
+  record is stored verbatim, one JSON object per line, sorted by organisation code, in a gzip file
+  (mtime 0). The directory is live, so a later re-download may differ from the manifest: that
+  is the publisher changing the data and has to be reviewed (as below).
 
 Raw data is immutable (brief §3.6):
 
@@ -69,7 +74,7 @@ class _Strict(BaseModel):
 class SourceFile(_Strict):
     name: str  # file name under data/raw/<source_id>/
     url: str  # for ons_api_batched: base URL *without* area-type (it is added per batch)
-    kind: Literal["http", "nomis_paged", "ons_api_batched"] = "http"
+    kind: Literal["http", "nomis_paged", "ons_api_batched", "ods_api_orgs"] = "http"
     description: str = ""
     expected_sha256: str | None = None
     # nomis_paged
@@ -78,7 +83,8 @@ class SourceFile(_Strict):
     area_type: str | None = None
     area_prefix: str = "E"
     batch_size: int | None = None
-    expected_rows: int | None = None  # nomis_paged: data rows; ons_api_batched: observations
+    # nomis_paged: data rows; ons_api_batched: observations; ods_api_orgs: organisations
+    expected_rows: int | None = None
 
     @model_validator(mode="after")
     def _kind_fields(self) -> SourceFile:
@@ -319,10 +325,36 @@ def _fetch_ons_batched(session: HttpSession, sf: SourceFile, tmp: Path, timeout:
     }
 
 
+ODS_SEARCH_LIMIT = 1000  # the ODS search API's maximum page size
+
+
+def _fetch_ods_orgs(session: HttpSession, sf: SourceFile, tmp: Path, timeout: float) -> dict:
+    listing = json.loads(_read_all(_get(session, sf.url, timeout)))["Organisations"]
+    if len(listing) >= ODS_SEARCH_LIMIT:
+        raise FetchError(f"{sf.name}: ODS search returned {len(listing)} rows (may be truncated)")
+    links = sorted((o["OrgId"], o["OrgLink"]) for o in listing)
+    with open(tmp, "wb") as fh, gzip.GzipFile(filename="", mode="wb", fileobj=fh, mtime=0) as gz:
+        for org_id, link in links:
+            record = json.loads(_read_all(_get(session, link, timeout)))["Organisation"]
+            if record["OrgId"]["extension"] != org_id:
+                raise FetchError(f"{sf.name}: {link} returned a different organisation")
+            line = {"org_id": org_id, "record": record}
+            gz.write(json.dumps(line, sort_keys=True).encode() + b"\n")
+            sleep(0.1)
+    if sf.expected_rows is not None and len(links) != sf.expected_rows:
+        raise FetchError(f"{sf.name}: got {len(links)} organisations, expected {sf.expected_rows}")
+    return {
+        "final_url": sf.url,
+        "content_type": "application/x-ndjson+gzip",
+        "rows": len(links),
+    }
+
+
 FETCHERS = {
     "http": _fetch_http,
     "nomis_paged": _fetch_nomis_paged,
     "ons_api_batched": _fetch_ons_batched,
+    "ods_api_orgs": _fetch_ods_orgs,
 }
 
 

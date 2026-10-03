@@ -2,7 +2,7 @@
 
 > **Generated file.** Rendered by `lsc-pop docs` from `outputs/<run_id>/run_log.jsonl` of the latest complete run. Don't edit by hand. Terms: [glossary](glossary.md).
 
-Run `20261002T155325Z_d1033f90_6cc3e8e2` · started 2026-10-02T15:53:25Z · config `d1033f90b44e` · code `6cc3e8e293d6` · uv.lock `67e24d4e0904` · git fd2d36566f1137bc132953e4d1774ce103c11bb2
+Run `20261003T104609Z_97bc3364_07ee74de` · started 2026-10-03T10:46:09Z · config `97bc33643549` · code `07ee74def47d` · uv.lock `67e24d4e0904` · git dbf9c1cb6c6d65e05e1c7f9be8b81ff1e75ed78e
 
 ## Summary
 
@@ -41,92 +41,93 @@ Run `20261002T155325Z_d1033f90_6cc3e8e2` · started 2026-10-02T15:53:25Z · conf
 | 31 | `deprivation.derive` | ok | 33,755 | 33,755 |  |  |  |
 | 32 | `catchments.load_ohid` | ok | 151,885 | 0 |  |  |  |
 | 33 | `catchments.build_bridge` | ok | 60,462 | 337,059 |  |  | +33,755 UNASSIGNED rows (1 − Σ published) |
-| 34 | `outputs.validate` | ok | 116,724,790 | 0 | 58,620,101 (F 29,895,762, M 28,724,339) |  |  |
-| 35 | `outputs.write` | ok | 0 | 117,095,849 |  | 58,620,101 (F 29,895,762, M 28,724,339) |  |
+| 34 | `catchments.host_icb` | ok | 1,901 | 134 |  |  |  |
+| 35 | `outputs.validate` | ok | 116,724,790 | 0 | 58,620,101 (F 29,895,762, M 28,724,339) |  |  |
+| 36 | `outputs.write` | ok | 0 | 117,103,468 |  | 58,620,101 (F 29,895,762, M 28,724,339) |  |
 
 ## Steps in detail
 
 ### 1. `geography.read_nhs`
 
-2026-10-02T15:53:25.794Z → 2026-10-02T15:53:25.872Z · ok
+2026-10-03T10:46:09.409Z → 2026-10-03T10:46:09.481Z · ok
 
-Parameters: `{"columns": {"ICB26CD": "icb_cd", "ICB26CDH": "icb_ods", "ICB26NM": "icb_nm", "LAD26CD": "lad_cd", "LAD26NM": "lad_nm", "LSOA21CD": "lsoa21cd", "LSOA21NM": "lsoa21nm", "NHSER26CD": "nhser_cd", "NHSER26CDH": "nhser_ods", "NHSER26NM": "nhser_nm", "SICBL26CD": "sicbl_cd", "SICBL26CDH": "sicbl_ods", "SICBL26NM": "sicbl_nm"}, "file": "lsoa21_sicbl26_icb26_nhser26_lad26.csv", "key": "lsoa21cd", "source": "S7", "vintage": "2026-04"}`
+Parameters: `{"columns": {"ICB26CD": "icb_code", "ICB26CDH": "icb_ods_code", "ICB26NM": "icb_name", "LAD26CD": "lad_code", "LAD26NM": "lad_name", "LSOA21CD": "lsoa21_code", "LSOA21NM": "lsoa21_name", "NHSER26CD": "nhser_code", "NHSER26CDH": "nhser_ods_code", "NHSER26NM": "nhser_name", "SICBL26CD": "sicbl_code", "SICBL26CDH": "sicbl_ods_code", "SICBL26NM": "sicbl_name"}, "file": "lsoa21_sicbl26_icb26_nhser26_lad26.csv", "key": "lsoa21_code", "source": "S7", "vintage": "2026-04"}`
 
 - input **S7/lsoa21_sicbl26_icb26_nhser26_lad26.csv**: 33,755 rows · hash `6cdd0cb55f2e`
-- output **nhs**: 33,755 rows · hash `a662fe161438`
+- output **nhs**: 33,755 rows · hash `4fdb8b34d517`
 
 ### 2. `geography.read_census`
 
-2026-10-02T15:53:25.872Z → 2026-10-02T15:53:26.041Z · ok
+2026-10-03T10:46:09.481Z → 2026-10-03T10:46:09.641Z · ok
 
-Parameters: `{"columns": {"LAD22CD": "ltla21cd", "LAD22NM": "ltla21nm", "LSOA21CD": "lsoa21cd", "MSOA21CD": "msoa21cd", "MSOA21NM": "msoa21nm"}, "file": "oa21_lsoa21_msoa21_lad22_exactfit_v3.csv", "key": "lsoa21cd", "source": "S7b", "vintage": "2021-12"}`
+Parameters: `{"columns": {"LAD22CD": "ltla21_code", "LAD22NM": "ltla21_name", "LSOA21CD": "lsoa21_code", "MSOA21CD": "msoa21_code", "MSOA21NM": "msoa21_name"}, "file": "oa21_lsoa21_msoa21_lad22_exactfit_v3.csv", "key": "lsoa21_code", "source": "S7b", "vintage": "2021-12"}`
 
 - input **S7b/oa21_lsoa21_msoa21_lad22_exactfit_v3.csv**: 188,880 rows · hash `1b7e71593637`
-- output **census**: 33,755 rows · hash `cfde69dcdc3a`
+- output **census**: 33,755 rows · hash `5d536e9eb848`
 
 ### 3. `geography.read_ltla_region`
 
-2026-10-02T15:53:26.042Z → 2026-10-02T15:53:26.044Z · ok
+2026-10-03T10:46:09.641Z → 2026-10-03T10:46:09.643Z · ok
 
-Parameters: `{"columns": {"LAD22CD": "ltla21cd", "RGN22CD": "rgn21cd", "RGN22NM": "rgn21nm"}, "file": "lad22_rgn22.csv", "key": "ltla21cd", "source": "S7c", "vintage": "2022-12"}`
+Parameters: `{"columns": {"LAD22CD": "ltla21_code", "RGN22CD": "rgn21_code", "RGN22NM": "rgn21_name"}, "file": "lad22_rgn22.csv", "key": "ltla21_code", "source": "S7c", "vintage": "2022-12"}`
 
 - input **S7c/lad22_rgn22.csv**: 309 rows · hash `b20db2949c8e`
-- output **ltla_region**: 309 rows · hash `2110de7ffe10`
+- output **ltla_region**: 309 rows · hash `e89f5dadc9c0`
 
 ### 4. `geography.build_lookup`
 
-2026-10-02T15:53:26.044Z → 2026-10-02T15:53:26.137Z · ok
+2026-10-03T10:46:09.643Z → 2026-10-03T10:46:09.731Z · ok
 
 Parameters: `{"footprint": {"extra_lsoas_from_trust_catchments": [], "focus_icb_codes": ["E54000048"], "icb_codes": [], "mode": "england"}}`
 
-- input **nhs**: 33,755 rows · hash `a662fe161438`
-- input **census**: 33,755 rows · hash `cfde69dcdc3a`
-- input **ltla_region**: 309 rows · hash `2110de7ffe10`
-- output **lsoa_lookup**: 33,755 rows · hash `a1637548a3f6`
+- input **nhs**: 33,755 rows · hash `4fdb8b34d517`
+- input **census**: 33,755 rows · hash `5d536e9eb848`
+- input **ltla_region**: 309 rows · hash `e89f5dadc9c0`
+- output **lsoa_lookup**: 33,755 rows · hash `c4fcad816f84`
 - note: 33755 LSOAs; footprint 33755 (england); focus ICB 1060
 
 ### 5. `census.load_rm032`
 
-2026-10-02T15:53:26.308Z → 2026-10-02T15:53:28.966Z · ok
+2026-10-03T10:46:09.891Z → 2026-10-03T10:46:12.443Z · ok
 
 - input **S1/rm032_lsoa21_england.csv**: 6,751,000 rows · hash `87f8afdcba56`
-- output **rm032**: 6,413,450 rows · hash `b3345b72e425` · population 56,490,573 (F 28,834,314, M 27,656,259)
+- output **rm032**: 6,413,450 rows · hash `6d693bab0a43` · population 56,490,573 (F 28,834,314, M 27,656,259)
 
 ### 6. `census.load_rm200`
 
-2026-10-02T15:53:28.966Z → 2026-10-02T15:53:31.179Z · ok
+2026-10-03T10:46:12.443Z → 2026-10-03T10:46:14.578Z · ok
 
 - input **S2/rm200_lsoa21_england.csv**: 6,210,920 rows · hash `056bf02fe57a`
-- output **rm200**: 6,143,410 rows · hash `9b0a288b793a` · population 56,489,042 (F 28,832,682, M 27,656,360)
+- output **rm200**: 6,143,410 rows · hash `4dd1149b3145` · population 56,489,042 (F 28,832,682, M 27,656,360)
 - note: Nomis age code converted to age = code - 1 (code 91 = 90+)
 
 ### 7. `census.load_ts021`
 
-2026-10-02T15:53:31.181Z → 2026-10-02T15:53:31.301Z · ok
+2026-10-03T10:46:14.580Z → 2026-10-03T10:46:14.694Z · ok
 
 - input **S4/census2021-ts021.zip!census2021-ts021-lsoa.csv**: 35,672 rows · hash `ca2301d72a2d`
-- output **ts021**: 641,345 rows · hash `255ab8a3c36a` · population 56,490,108
+- output **ts021**: 641,345 rows · hash `6807c2e20f6e` · population 56,490,108
 - note: wide -> long by label; 5 high-level group columns ignored (derivable)
 
 ### 8. `census.load_seed_age_91a`
 
-2026-10-02T15:53:31.301Z → 2026-10-02T15:53:35.829Z · ok
+2026-10-03T10:46:14.694Z → 2026-10-03T10:46:19.142Z · ok
 
 - input **S3/ltla21_eth20_sex_age91.jsonl.gz**: 1,095,640 rows · hash `6c09e7478a4d`
-- output **seed_age_91a**: 1,040,858 rows · hash `b6b05cd8d348` · population 56,040,038 (F 28,606,005, M 27,434,033)
+- output **seed_age_91a**: 1,040,858 rows · hash `a573d2f85e77` · population 56,040,038 (F 28,606,005, M 27,434,033)
 - note: blocked LTLAs (8): E06000053, E07000026, E07000029, E07000030, E07000046, E07000047, E07000166, E07000167
 
 ### 9. `census.load_seed_age_23a`
 
-2026-10-02T15:53:35.887Z → 2026-10-02T15:53:37.011Z · ok
+2026-10-03T10:46:19.198Z → 2026-10-03T10:46:20.297Z · ok
 
 - input **S3/ltla21_eth20_sex_age23.jsonl.gz**: 283,360 rows · hash `8881f4e2d4c8`
-- output **seed_age_23a**: 269,192 rows · hash `934fcadc257c` · population 56,487,999 (F 28,832,825, M 27,655,174)
+- output **seed_age_23a**: 269,192 rows · hash `66f9c454d299` · population 56,487,999 (F 28,832,825, M 27,655,174)
 - note: blocked LTLAs (1): E06000053
 
 ### 10. `census.compare_tables`
 
-2026-10-02T15:53:37.038Z → 2026-10-02T15:53:38.360Z · ok
+2026-10-03T10:46:20.324Z → 2026-10-03T10:46:21.604Z · ok
 
 - note: rm032_vs_rm200_lsoa_sex: {"cells": 67510, "share_identical": 0.0682, "mean_abs": 4.771, "p50_abs": 4.0, "p95_abs": 12.0, "p99_abs": 16.0, "max_abs": 29.0, "net": 1531.0, "p95_rel": 0.015, "max_rel": 0.0377}
 - note: rm032_vs_rm200_lsoa_sex_band: {"cells": 337550, "share_identical": 0.1717, "mean_abs": 2.047, "p50_abs": 2.0, "p95_abs": 5.0, "p99_abs": 8.0, "max_abs": 16.0, "net": 1531.0, "p95_rel": 0.042, "max_rel": 0.75}
@@ -138,24 +139,24 @@ Parameters: `{"footprint": {"extra_lsoas_from_trust_catchments": [], "focus_icb_
 
 ### 11. `census.reconcile_margins[rm200]`
 
-2026-10-02T15:53:38.362Z → 2026-10-02T15:53:45.958Z · ok
+2026-10-03T10:46:21.606Z → 2026-10-03T10:46:29.007Z · ok
 
 Parameters: `{"source": "rm200"}`
 
-- input **rm032**: 6,413,450 rows · hash `b3345b72e425` · population 56,490,573 (F 28,834,314, M 27,656,259)
-- input **rm200**: 6,143,410 rows · hash `9b0a288b793a` · population 56,489,042 (F 28,832,682, M 27,656,360)
-- output **margins**: 12,556,860 rows · hash `f2c8bf6a4e55` · population 112,978,084 (F 57,665,364, M 55,312,720)
+- input **rm032**: 6,413,450 rows · hash `6d693bab0a43` · population 56,490,573 (F 28,834,314, M 27,656,259)
+- input **rm200**: 6,143,410 rows · hash `4dd1149b3145` · population 56,489,042 (F 28,832,682, M 27,656,360)
+- output **margins**: 12,556,860 rows · hash `65e01cd8aa2d` · population 112,978,084 (F 57,665,364, M 55,312,720)
 - note: {"source": "rm200", "target_total": 56489042.0, "rm032_adjustment": {"cells": 337550, "share_identical": 0.1717, "mean_abs": 2.047, "p50_abs": 2.0, "p95_abs": 5.0, "p99_abs": 8.0, "max_abs": 16.0, "net": -1531.0, "p95_rel": 0.042, "max_rel": 0.6667}, "rm200_adjustment": {"cells": 337550, "share_identical": 1.0, "mean_abs": 0.0, "p50_abs": 0.0, "p95_abs": 0.0, "p99_abs": 0.0, "max_abs": 0.0, "net": 0.0, "p95_rel": 0.0, "max_rel": 0.0}, "bands_eth_fallback": 0, "persons_eth_fallback": 0.0, "bands_age_fallback": 0, "persons_age_fallback": 0.0, "persons_dropped_rm032_zeroed": 0.0, "persons_dropped_rm200_zeroed": 0.0}
 
 ### 12. `base.build_seed`
 
-2026-10-02T15:53:50.261Z → 2026-10-02T15:53:50.423Z · ok
+2026-10-03T10:46:33.151Z → 2026-10-03T10:46:33.309Z · ok
 
 Parameters: `{"max_iter": 1000, "seed_floor": 0.5, "seed_substitutes": {"E06000053": "E06000052"}, "sensitivity_floors": [0.01, 0.5, 2.0], "tolerance": 1e-06}`
 
-- input **seed_age91**: 1,040,858 rows · hash `b6b05cd8d348` · population 56,040,038 (F 28,606,005, M 27,434,033)
-- input **seed_age23**: 269,192 rows · hash `934fcadc257c` · population 56,487,999 (F 28,832,825, M 27,655,174)
-- output **seed**: 1,068,522 rows · hash `922c6c362b26` · population 57,058,043 (F 29,126,254, M 27,931,789)
+- input **seed_age91**: 1,040,858 rows · hash `a573d2f85e77` · population 56,040,038 (F 28,606,005, M 27,434,033)
+- input **seed_age23**: 269,192 rows · hash `66f9c454d299` · population 56,487,999 (F 28,832,825, M 27,655,174)
+- output **seed**: 1,068,522 rows · hash `9a442e16db27` · population 57,058,043 (F 29,126,254, M 27,931,789)
 - note: E07000026: 23-category counts split by region E12000002 single-year shape
 - note: E07000029: 23-category counts split by region E12000002 single-year shape
 - note: E07000030: 23-category counts split by region E12000002 single-year shape
@@ -168,7 +169,7 @@ Parameters: `{"max_iter": 1000, "seed_floor": 0.5, "seed_substitutes": {"E060000
 
 ### 13. `base.fit`
 
-2026-10-02T15:53:51.296Z → 2026-10-02T15:53:57.842Z · ok
+2026-10-03T10:46:34.150Z → 2026-10-03T10:46:40.563Z · ok
 
 Parameters: `{"seed_floor": 0.5, "tol": 1e-06}`
 
@@ -180,7 +181,7 @@ Parameters: `{"seed_floor": 0.5, "tol": 1e-06}`
 
 ### 14. `base.sensitivity[floor=0.01]`
 
-2026-10-02T15:53:59.315Z → 2026-10-02T15:53:59.458Z · ok
+2026-10-03T10:46:42.013Z → 2026-10-03T10:46:42.152Z · ok
 
 Parameters: `{"seed_floor": 0.01, "tol": 1e-06}`
 
@@ -192,7 +193,7 @@ Parameters: `{"seed_floor": 0.01, "tol": 1e-06}`
 
 ### 15. `base.sensitivity[floor=0.5]`
 
-2026-10-02T15:53:59.534Z → 2026-10-02T15:53:59.620Z · ok
+2026-10-03T10:46:42.227Z → 2026-10-03T10:46:42.311Z · ok
 
 Parameters: `{"seed_floor": 0.5, "tol": 1e-06}`
 
@@ -204,7 +205,7 @@ Parameters: `{"seed_floor": 0.5, "tol": 1e-06}`
 
 ### 16. `base.sensitivity[floor=2]`
 
-2026-10-02T15:53:59.696Z → 2026-10-02T15:53:59.779Z · ok
+2026-10-03T10:46:42.386Z → 2026-10-03T10:46:42.468Z · ok
 
 Parameters: `{"seed_floor": 2.0, "tol": 1e-06}`
 
@@ -216,7 +217,7 @@ Parameters: `{"seed_floor": 2.0, "tol": 1e-06}`
 
 ### 17. `base.sensitivity[uniform seed]`
 
-2026-10-02T15:53:59.854Z → 2026-10-02T15:53:59.882Z · ok
+2026-10-03T10:46:42.541Z → 2026-10-03T10:46:42.569Z · ok
 
 Parameters: `{"seed_floor": 1.0, "tol": 1e-06}`
 
@@ -228,65 +229,65 @@ Parameters: `{"seed_floor": 1.0, "tol": 1e-06}`
 
 ### 18. `base.write`
 
-2026-10-02T15:54:00.002Z → 2026-10-02T15:54:06.155Z · ok
+2026-10-03T10:46:42.688Z → 2026-10-03T10:46:48.643Z · ok
 
-- output **base2021**: 116,724,790 rows · hash `ed21fc0c99f3` · population 56,489,042 (F 28,832,682, M 27,656,360)
+- output **base2021**: 116,724,790 rows · hash `a0407f3d57e2` · population 56,489,042 (F 28,832,682, M 27,656,360)
 
 ### 19. `rollforward.load_mye`
 
-2026-10-02T15:54:06.678Z → 2026-10-02T15:54:22.326Z · ok
+2026-10-03T10:46:49.169Z → 2026-10-03T10:47:04.698Z · ok
 
 Parameters: `{"edition": "Mid-2022 revised (Nov 2025) to mid-2024 (SAPE2024)", "file": "sapelsoasyoa20222024.xlsx", "header_row": 3, "sheet_template": "Mid-{year} LSOA 2021", "source": "S5"}`
 
 - input **S5/sapelsoasyoa20222024.xlsx!Mid-2024 LSOA 2021**: 35,672 rows · hash `2a59e9332112`
-- output **mye**: 6,143,410 rows · hash `dda475824e96` · population 58,620,101 (F 29,895,762, M 28,724,339)
+- output **mye**: 6,143,410 rows · hash `e2c74b53cc67` · population 58,620,101 (F 29,895,762, M 28,724,339)
 - note: Mid-2024 LSOA 2021: England total 58,620,101
 
 ### 20. `rollforward.check_broad_age`
 
-2026-10-02T15:54:22.331Z → 2026-10-02T15:54:23.750Z · ok
+2026-10-03T10:47:04.703Z → 2026-10-03T10:47:06.100Z · ok
 
 - input **S5b!Mid-2024 LSOA 2021**: 35,672 rows · hash `b77a07033dca`
 
 ### 21. `rollforward.apply[cohort]`
 
-2026-10-02T15:54:23.750Z → 2026-10-02T15:54:26.199Z · ok
+2026-10-03T10:47:06.100Z → 2026-10-03T10:47:08.548Z · ok
 
 Parameters: `{"newborn_proxy_ages": [0], "shift_years": 3, "variant": "cohort"}`
 
-- input **base2021**: 116,724,790 rows · hash `ed21fc0c99f3` · population 56,489,042 (F 28,832,682, M 27,656,360)
-- output **estimates**: 116,724,790 rows · hash `a9fd10bff81b` · population 58,620,101 (F 29,895,762, M 28,724,339)
+- input **base2021**: 116,724,790 rows · hash `a0407f3d57e2` · population 56,489,042 (F 28,832,682, M 27,656,360)
+- output **estimates**: 116,724,790 rows · hash `9fa09f4a4fcb` · population 58,620,101 (F 29,895,762, M 28,724,339)
 - note: share fallback levels: {"direct": {"cells": 6054215, "persons": 58489072.0}, "lsoa_sex_band": {"cells": 89172, "persons": 131022.0}, "lsoa_sex_all_ages": {"cells": 23, "persons": 7.0}, "lsoa_all": {"cells": 0, "persons": 0.0}, "ltla_sex_age": {"cells": 0, "persons": 0.0}}
 
 ### 22. `rollforward.apply[static]`
 
-2026-10-02T15:54:26.410Z → 2026-10-02T15:54:28.819Z · ok
+2026-10-03T10:47:08.769Z → 2026-10-03T10:47:11.220Z · ok
 
 Parameters: `{"newborn_proxy_ages": [0], "shift_years": 3, "variant": "static"}`
 
-- input **base2021**: 116,724,790 rows · hash `ed21fc0c99f3` · population 56,489,042 (F 28,832,682, M 27,656,360)
-- output **estimates**: 116,724,790 rows · hash `64e4eb517e1d` · population 58,620,101 (F 29,895,762, M 28,724,339)
+- input **base2021**: 116,724,790 rows · hash `a0407f3d57e2` · population 56,489,042 (F 28,832,682, M 27,656,360)
+- output **estimates**: 116,724,790 rows · hash `513d953b1cd9` · population 58,620,101 (F 29,895,762, M 28,724,339)
 - note: share fallback levels: {"direct": {"cells": 6004410, "persons": 58372989.0}, "lsoa_sex_band": {"cells": 138974, "persons": 247102.0}, "lsoa_sex_all_ages": {"cells": 26, "persons": 10.0}, "lsoa_all": {"cells": 0, "persons": 0.0}, "ltla_sex_age": {"cells": 0, "persons": 0.0}}
 
 ### 23. `rollforward.apply[cohort]`
 
-2026-10-02T15:54:28.820Z → 2026-10-02T15:54:31.242Z · ok
+2026-10-03T10:47:11.221Z → 2026-10-03T10:47:13.664Z · ok
 
 Parameters: `{"newborn_proxy_ages": [0, 1, 2, 3, 4], "shift_years": 3, "variant": "cohort"}`
 
-- input **base2021**: 116,724,790 rows · hash `ed21fc0c99f3` · population 56,489,042 (F 28,832,682, M 27,656,360)
-- output **estimates**: 116,724,790 rows · hash `6619588857d1` · population 58,620,101 (F 29,895,762, M 28,724,339)
+- input **base2021**: 116,724,790 rows · hash `a0407f3d57e2` · population 56,489,042 (F 28,832,682, M 27,656,360)
+- output **estimates**: 116,724,790 rows · hash `bfed4d216b75` · population 58,620,101 (F 29,895,762, M 28,724,339)
 - note: share fallback levels: {"direct": {"cells": 6055799, "persons": 58495262.0}, "lsoa_sex_band": {"cells": 87588, "persons": 124832.0}, "lsoa_sex_all_ages": {"cells": 23, "persons": 7.0}, "lsoa_all": {"cells": 0, "persons": 0.0}, "ltla_sex_age": {"cells": 0, "persons": 0.0}}
 
 ### 24. `base.build_seed`
 
-2026-10-02T15:54:31.378Z → 2026-10-02T15:54:31.544Z · ok
+2026-10-03T10:47:13.806Z → 2026-10-03T10:47:13.969Z · ok
 
 Parameters: `{"max_iter": 1000, "seed_floor": 0.5, "seed_substitutes": {"E06000053": "E06000052"}, "sensitivity_floors": [0.01, 0.5, 2.0], "tolerance": 1e-06}`
 
-- input **seed_age91**: 1,040,858 rows · hash `b6b05cd8d348` · population 56,040,038 (F 28,606,005, M 27,434,033)
-- input **seed_age23**: 269,192 rows · hash `934fcadc257c` · population 56,487,999 (F 28,832,825, M 27,655,174)
-- output **seed**: 1,068,522 rows · hash `922c6c362b26` · population 57,058,043 (F 29,126,254, M 27,931,789)
+- input **seed_age91**: 1,040,858 rows · hash `a573d2f85e77` · population 56,040,038 (F 28,606,005, M 27,434,033)
+- input **seed_age23**: 269,192 rows · hash `66f9c454d299` · population 56,487,999 (F 28,832,825, M 27,655,174)
+- output **seed**: 1,068,522 rows · hash `9a442e16db27` · population 57,058,043 (F 29,126,254, M 27,931,789)
 - note: E07000026: 23-category counts split by region E12000002 single-year shape
 - note: E07000029: 23-category counts split by region E12000002 single-year shape
 - note: E07000030: 23-category counts split by region E12000002 single-year shape
@@ -299,7 +300,7 @@ Parameters: `{"max_iter": 1000, "seed_floor": 0.5, "seed_substitutes": {"E060000
 
 ### 25. `rollforward.sensitivity_fit[floor=0.01]`
 
-2026-10-02T15:54:32.573Z → 2026-10-02T15:54:32.719Z · ok
+2026-10-03T10:47:14.994Z → 2026-10-03T10:47:15.138Z · ok
 
 Parameters: `{"seed_floor": 0.01, "tol": 1e-06}`
 
@@ -311,17 +312,17 @@ Parameters: `{"seed_floor": 0.01, "tol": 1e-06}`
 
 ### 26. `rollforward.apply[cohort]`
 
-2026-10-02T15:54:32.719Z → 2026-10-02T15:54:32.779Z · ok
+2026-10-03T10:47:15.138Z → 2026-10-03T10:47:15.197Z · ok
 
 Parameters: `{"newborn_proxy_ages": [0], "shift_years": 3, "variant": "cohort"}`
 
-- input **base2021**: 3,665,480 rows · hash `d77098dc0a04` · population 1,717,308 (F 872,370, M 844,938)
-- output **estimates**: 3,665,480 rows · hash `ed0273238f95` · population 1,790,318 (F 905,499, M 884,819)
+- input **base2021**: 3,665,480 rows · hash `ebbb1dca6aa4` · population 1,717,308 (F 872,370, M 844,938)
+- output **estimates**: 3,665,480 rows · hash `f3d01b9f5e0f` · population 1,790,318 (F 905,499, M 884,819)
 - note: share fallback levels: {"direct": {"cells": 190906, "persons": 1786802.0}, "lsoa_sex_band": {"cells": 2014, "persons": 3516.0}, "lsoa_sex_all_ages": {"cells": 0, "persons": 0.0}, "lsoa_all": {"cells": 0, "persons": 0.0}, "ltla_sex_age": {"cells": 0, "persons": 0.0}}
 
 ### 27. `rollforward.sensitivity_fit[floor=2]`
 
-2026-10-02T15:54:32.790Z → 2026-10-02T15:54:32.872Z · ok
+2026-10-03T10:47:15.208Z → 2026-10-03T10:47:15.290Z · ok
 
 Parameters: `{"seed_floor": 2.0, "tol": 1e-06}`
 
@@ -333,43 +334,43 @@ Parameters: `{"seed_floor": 2.0, "tol": 1e-06}`
 
 ### 28. `rollforward.apply[cohort]`
 
-2026-10-02T15:54:32.873Z → 2026-10-02T15:54:32.932Z · ok
+2026-10-03T10:47:15.290Z → 2026-10-03T10:47:15.347Z · ok
 
 Parameters: `{"newborn_proxy_ages": [0], "shift_years": 3, "variant": "cohort"}`
 
-- input **base2021**: 3,665,480 rows · hash `c1f6ea9a75bc` · population 1,717,308 (F 872,370, M 844,938)
-- output **estimates**: 3,665,480 rows · hash `476213385561` · population 1,790,318 (F 905,499, M 884,819)
+- input **base2021**: 3,665,480 rows · hash `d6ca77e89638` · population 1,717,308 (F 872,370, M 844,938)
+- output **estimates**: 3,665,480 rows · hash `1eb9d20a73b5` · population 1,790,318 (F 905,499, M 884,819)
 - note: share fallback levels: {"direct": {"cells": 190906, "persons": 1786802.0}, "lsoa_sex_band": {"cells": 2014, "persons": 3516.0}, "lsoa_sex_all_ages": {"cells": 0, "persons": 0.0}, "lsoa_all": {"cells": 0, "persons": 0.0}, "ltla_sex_age": {"cells": 0, "persons": 0.0}}
 
 ### 29. `rollforward.write`
 
-2026-10-02T15:54:32.952Z → 2026-10-02T15:54:39.157Z · ok
+2026-10-03T10:47:15.366Z → 2026-10-03T10:47:21.444Z · ok
 
-- output **estimates**: 116,724,790 rows · hash `a9fd10bff81b` · population 58,620,101 (F 29,895,762, M 28,724,339)
+- output **estimates**: 116,724,790 rows · hash `9fa09f4a4fcb` · population 58,620,101 (F 29,895,762, M 28,724,339)
 
 ### 30. `deprivation.load_iod`
 
-2026-10-02T15:54:39.739Z → 2026-10-02T15:54:39.830Z · ok
+2026-10-03T10:47:22.075Z → 2026-10-03T10:47:22.166Z · ok
 
 Parameters: `{"core20_max_decile": 2, "edition": "IoD 2025", "file": "File_7_IoD2025_All_Ranks_Scores_Deciles_Population_Denominators.csv", "local_quintile": {"enabled": true, "within": "icb"}, "source": "S8"}`
 
 - input **S8/File_7_IoD2025_All_Ranks_Scores_Deciles_Population_Denominators.csv**: 33,755 rows · hash `b1b716aa2e47`
-- output **iod**: 33,755 rows · hash `c8fb6ba40633`
+- output **iod**: 33,755 rows · hash `30658f2d81d8`
 
 ### 31. `deprivation.derive`
 
-2026-10-02T15:54:39.838Z → 2026-10-02T15:54:39.872Z · ok
+2026-10-03T10:47:22.174Z → 2026-10-03T10:47:22.207Z · ok
 
 Parameters: `{"core20_max_decile": 2, "edition": "IoD 2025", "file": "File_7_IoD2025_All_Ranks_Scores_Deciles_Population_Denominators.csv", "local_quintile": {"enabled": true, "within": "icb"}, "source": "S8"}`
 
-- input **iod**: 33,755 rows · hash `c8fb6ba40633`
-- output **iod**: 33,755 rows · hash `3ef0914f51d8`
+- input **iod**: 33,755 rows · hash `30658f2d81d8`
+- output **iod**: 33,755 rows · hash `11262b9526eb`
 
 ### 32. `catchments.load_ohid`
 
-2026-10-02T15:54:40.521Z → 2026-10-02T15:54:52.529Z · ok
+2026-10-03T10:47:22.794Z → 2026-10-03T10:47:34.612Z · ok
 
-Parameters: `{"admission_type": "All admissions", "catchment_year": 2024, "file": "nhs-acute-hospital-trust-catchment-populations-data_tables-april-2026.ods", "source": "S9"}`
+Parameters: `{"admission_type": "All admissions", "catchment_year": 2024, "file": "nhs-acute-hospital-trust-catchment-populations-data_tables-april-2026.ods", "host_icb": {"file": "ods_nhs_trusts.jsonl.gz", "relationship": "RE5", "source": "S10", "target_role": "RO261"}, "source": "S9"}`
 
 - input **S9/nhs-acute-hospital-trust-catchment-populations-data_tables-april-2026.ods**: 151,885 rows · hash `7f7639b2cc05`
 - note: All_admissions: 60462 rows for 2024 / All admissions
@@ -379,26 +380,40 @@ Parameters: `{"admission_type": "All admissions", "catchment_year": 2024, "file"
 
 ### 33. `catchments.build_bridge`
 
-2026-10-02T15:54:52.549Z → 2026-10-02T15:54:52.688Z · ok
+2026-10-03T10:47:34.631Z → 2026-10-03T10:47:34.808Z · ok
 
-- input **ohid_t2**: 60,462 rows · hash `5ffe4a8f8061`
-- output **bridge_lsoa_trust**: 337,059 rows · hash `e25b5fad9d4b`
+- input **ohid_t2**: 60,462 rows · hash `0cdcbde0c70e`
+- output **bridge_lsoa_trust**: 337,059 rows · hash `eb4e029c7c68`
 
-### 34. `outputs.validate`
+### 34. `catchments.host_icb`
 
-2026-10-02T15:54:53.638Z → 2026-10-02T15:54:54.165Z · ok
+2026-10-03T10:47:34.816Z → 2026-10-03T10:47:34.822Z · ok
 
-- input **estimates**: 116,724,790 rows · hash `a9fd10bff81b` · population 58,620,101 (F 29,895,762, M 28,724,339)
+- input **S10/ods_nhs_trusts.jsonl.gz**: 1,901 rows · hash `5a94de63a168`
+- output **host_icb**: 134 rows · hash `30c3127cb4a0`
+
+### 35. `outputs.validate`
+
+2026-10-03T10:47:35.734Z → 2026-10-03T10:47:36.317Z · ok
+
+- input **estimates**: 116,724,790 rows · hash `9fa09f4a4fcb` · population 58,620,101 (F 29,895,762, M 28,724,339)
 - note: fact rows 116,724,790; dim_lsoa 33755; bridge 337059
 
-### 35. `outputs.write`
+### 36. `outputs.write`
 
-2026-10-02T15:54:54.165Z → 2026-10-02T15:55:18.242Z · ok
+2026-10-03T10:47:36.317Z → 2026-10-03T10:48:00.078Z · ok
 
-- output **fact_population**: 116,724,790 rows · hash `a9fd10bff81b` · population 58,620,101 (F 29,895,762, M 28,724,339)
-- output **dim_lsoa**: 33,755 rows · hash `f295b12a3335`
+- output **fact_population**: 116,724,790 rows · hash `9fa09f4a4fcb` · population 58,620,101 (F 29,895,762, M 28,724,339)
+- output **dim_lsoa**: 33,755 rows · hash `13078d5b1577`
+- output **dim_region**: 9 rows · hash `7673c8e76680`
+- output **dim_ltla**: 309 rows · hash `4c8941ac99f9`
+- output **dim_msoa**: 6,856 rows · hash `49e219786a03`
+- output **dim_lad**: 296 rows · hash `24ccbcce3b3a`
+- output **dim_nhs_region**: 7 rows · hash `0ed4485c46bd`
+- output **dim_icb**: 36 rows · hash `77febe5fa6dd`
+- output **dim_sub_icb**: 106 rows · hash `7e60e4ef8929`
 - output **dim_ethnicity**: 19 rows · hash `ea6de4ae4013`
 - output **dim_age**: 91 rows · hash `3e20cb14f4b9`
-- output **dim_trust**: 135 rows · hash `778c01f1d482`
-- output **bridge_lsoa_trust**: 337,059 rows · hash `e25b5fad9d4b`
+- output **dim_trust**: 135 rows · hash `400a0a727303`
+- output **bridge_lsoa_trust**: 337,059 rows · hash `eb4e029c7c68`
 

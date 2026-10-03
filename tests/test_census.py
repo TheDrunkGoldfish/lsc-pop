@@ -99,7 +99,7 @@ def _seed_gz(ltlas, blocked, dim="resident_age_91a", n_age=91, dna=0) -> bytes:
 def test_load_rm032(project_copy, ctx):
     install_raw(project_copy, "S1", census.RM032[1], _rm032_csv())
     df = census.load_rm032(ctx, LSOAS)
-    assert list(df.columns) == ["lsoa21cd", "sex", "band", "eth19", "population"]
+    assert list(df.columns) == ["lsoa21_code", "sex", "band", "eth19", "population"]
     assert len(df) == 2 * 5 * 2 * 19
     assert set(df["sex"]) == {"F", "M"}
     assert df["eth19"].min() == 1 and df["eth19"].max() == 19
@@ -140,7 +140,7 @@ def test_load_seed_records_blocked(project_copy, ctx):
     install_raw(project_copy, "S3", census.SEED91[1], _seed_gz(ltlas, ["E06000053"]))
     df, blocked = census.load_seed(ctx, census.SEED91, pd.Index(ltlas))
     assert blocked == ["E06000053"]
-    assert set(df["ltla21cd"]) == {"E06000001", "E06000002"}
+    assert set(df["ltla21_code"]) == {"E06000001", "E06000002"}
     assert len(df) == 2 * 19 * 2 * 91
     c = _checks(ctx)
     assert c["CEN-07-age_91a"]["passed"] and c["CEN-08-age_91a"]["passed"]
@@ -159,14 +159,14 @@ def _tidy_rm032(value):
     return pd.DataFrame(
         [(ls, s, b, e, value(ls, s, b, e)) for ls in LSOAS for s in "FM" for b in BANDS
          for e in range(1, 20)],
-        columns=["lsoa21cd", "sex", "band", "eth19", "population"],
+        columns=["lsoa21_code", "sex", "band", "eth19", "population"],
     )  # fmt: skip
 
 
 def _tidy_rm200(value):
     return pd.DataFrame(
         [(ls, s, a, value(ls, s, a)) for ls in LSOAS for s in "FM" for a in range(91)],
-        columns=["lsoa21cd", "sex", "age", "population"],
+        columns=["lsoa21_code", "sex", "age", "population"],
     )
 
 
@@ -174,15 +174,15 @@ def _seed(value=lambda lt, e, s, a: 1.0):
     return pd.DataFrame(
         [("E07000001", e, s, a, value("E07000001", e, s, a)) for e in range(1, 20) for s in "FM"
          for a in range(91)],
-        columns=["ltla21cd", "eth19", "sex", "age", "population"],
+        columns=["ltla21_code", "eth19", "sex", "age", "population"],
     )  # fmt: skip
 
 
-LOOKUP = pd.DataFrame({"lsoa21cd": LSOAS, "ltla21cd": ["E07000001", "E07000001"]})
+LOOKUP = pd.DataFrame({"lsoa21_code": LSOAS, "ltla21_code": ["E07000001", "E07000001"]})
 
 
 def _band_sums(m, kind):
-    return m[m["kind"] == kind].groupby(["lsoa21cd", "sex", "band"])["population"].sum()
+    return m[m["kind"] == kind].groupby(["lsoa21_code", "sex", "band"])["population"].sum()
 
 
 def test_reconcile_rm200_source_keeps_ages_scales_ethnicity(ctx):
@@ -190,9 +190,9 @@ def test_reconcile_rm200_source_keeps_ages_scales_ethnicity(ctx):
     rm200 = _tidy_rm200(lambda ls, s, a: 1)
     rec = census.reconcile_margins(ctx, rm032, rm200, _seed(), LOOKUP, source="rm200")
     m = rec.margins
-    ages = m[m["kind"] == "age"].set_index(["lsoa21cd", "sex", "key"])["population"]
+    ages = m[m["kind"] == "age"].set_index(["lsoa21_code", "sex", "key"])["population"]
     assert (ages == 1).all()  # RM200 unchanged
-    eth = m[(m["kind"] == "eth19") & (m["band"] == 2)].set_index(["lsoa21cd", "sex", "key"])[
+    eth = m[(m["kind"] == "eth19") & (m["band"] == 2)].set_index(["lsoa21_code", "sex", "key"])[
         "population"
     ]
     # band 2 has 10 single years -> T = 10; RM032 3 people in ratio 2:1 -> 6.667 and 3.333
@@ -225,7 +225,7 @@ def test_eth_fallback_uses_pooled_lsoa_mix(ctx):
     rec = census.reconcile_margins(ctx, _tidy_rm032(v032), rm200, _seed(), LOOKUP, source="rm200")
     assert rec.summary["bands_eth_fallback"] == 1
     assert rec.summary["persons_eth_fallback"] == 25
-    m = rec.margins.set_index(["lsoa21cd", "sex", "band", "kind", "key"])["population"]
+    m = rec.margins.set_index(["lsoa21_code", "sex", "band", "kind", "key"])["population"]
     assert m[("E01000001", "F", 1, "eth19", 4)] == pytest.approx(25 * 0.75)
     assert m[("E01000001", "F", 1, "eth19", 13)] == pytest.approx(25 * 0.25)
     assert _checks(ctx)["CEN-10"]["passed"]
@@ -241,7 +241,7 @@ def test_age_fallback_uses_seed_shape(ctx):
     seed = _seed(lambda lt, e, s, a: 2.0 if a == 30 else 1.0)
     rec = census.reconcile_margins(ctx, rm032, rm200, seed, LOOKUP, source="rm032")
     assert rec.summary["bands_age_fallback"] == 1
-    m = rec.margins.set_index(["lsoa21cd", "sex", "band", "kind", "key"])["population"]
+    m = rec.margins.set_index(["lsoa21_code", "sex", "band", "kind", "key"])["population"]
     assert m[("E01000002", "M", 2, "age", 30)] == pytest.approx(4 * 2 / 11)
     assert m[("E01000002", "M", 2, "age", 25)] == pytest.approx(4 * 1 / 11)
     assert _checks(ctx)["CEN-10"]["passed"]
