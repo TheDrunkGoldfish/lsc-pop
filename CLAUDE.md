@@ -45,3 +45,16 @@ kept) → `outputs/<run_id>/` → `docs/` (ADRs in `docs/decisions/`).
   `openjdk@17`). Files in `transformations/` run in numeric-prefix order in the local harness.
 - After changing CLI commands or options, run `uv run lsc-pop docs` (regenerates the README command reference;
   `tests/test_docs.py` fails otherwise). Define new acronyms in `docs/glossary.md`.
+
+## Context hygiene (token cost)
+- **Keep bulk output out of the context window.** Trim long command output (`tail`, `head`, `grep`; test and lint dumps
+  to the failures only). Read big files with `offset`/`limit` or grep, don't re-read files just edited, and send wide
+  searches or verification passes to a subagent so only its summary comes back.
+- **`/clear` and `/compact` are user-only; Claude can't run them.** Claude should suggest one, in a single line, at a
+  natural break (PR merged, phase finished, topic changed). Say what a `/compact` should keep, or that everything
+  needed is already in git/ADRs/PLAN so a `/clear` loses nothing.
+- **Checkpoint before a new phase or large piece of work.** If the user hasn't run `/clear` or `/compact` recently (as
+  far as this conversation shows) and context is roughly over 100k tokens (estimate; say it's an estimate), ask once
+  with `AskUserQuestion`: A) carry on, B) pause while they run `/clear` or `/compact`, then continue, C) other. Name the
+  approximate token count. If A, don't ask again until the next phase. Before B, save state (commit, notes) so the
+  `/clear` is lossless.
