@@ -8,13 +8,13 @@ Tidy tables (``data/interim/census/``), all England, sorted by key:
 ==================  ==========================================================  ===========
 table               columns                                                     source
 ==================  ==========================================================  ===========
-``rm032``           lsoa21cd, sex, band (1-5), eth19 (1-19), population          S1
-``rm200``           lsoa21cd, sex, age (0-90), population                        S2
-``ts021``           lsoa21cd, eth19, population                                  S4
-``seed_age91``      ltla21cd, eth19, sex, age (0-90), population                 S3
-``seed_age23``      ltla21cd, eth19, sex, age23 (1-23), population               S3
-``seed_blocked``    ltla21cd, classification (age_91a | age_23a)                 S3
-``margins``         lsoa21cd, sex, band, kind (eth19 | age), key, population     reconciled
+``rm032``           lsoa21_code, sex, band (1-5), eth19 (1-19), population          S1
+``rm200``           lsoa21_code, sex, age (0-90), population                        S2
+``ts021``           lsoa21_code, eth19, population                                  S4
+``seed_age91``      ltla21_code, eth19, sex, age (0-90), population                 S3
+``seed_age23``      ltla21_code, eth19, sex, age23 (1-23), population               S3
+``seed_blocked``    ltla21_code, classification (age_91a | age_23a)                 S3
+``margins``         lsoa21_code, sex, band, kind (eth19 | age), key, population     reconciled
 ==================  ==========================================================  ===========
 
 ``sex`` is ``"F"`` / ``"M"`` throughout (Nomis and ONS API code 1 = Female, 2 = Male).
@@ -77,11 +77,11 @@ def load_rm032(ctx: RunContext, lsoas: pd.Index) -> pd.DataFrame:
         )  # fmt: skip
         step.input_file("S1/" + RM032[1], path, entry["sha256"], rows=len(raw))
         df = raw.rename(
-            columns={"GEOGRAPHY_CODE": "lsoa21cd", "C2021_ETH_20": "eth", "C2021_AGE_6": "band",
+            columns={"GEOGRAPHY_CODE": "lsoa21_code", "C2021_ETH_20": "eth", "C2021_AGE_6": "band",
                      "C_SEX": "sex", "OBS_VALUE": "population"}
         )  # fmt: skip
         df["sex"] = df["sex"].map(SEX)
-        keys = ["lsoa21cd", "sex", "band"]
+        keys = ["lsoa21_code", "sex", "band"]
         total = df[df["eth"] == 0].set_index(keys)["population"].sort_index()
         groups = df[df["eth"] > 0]
         s19 = groups.groupby(keys)["population"].sum().sort_index()
@@ -93,11 +93,18 @@ def load_rm032(ctx: RunContext, lsoas: pd.Index) -> pd.DataFrame:
         )  # fmt: skip
         step.drop(len(df) - len(groups), "all-groups total rows (eth=0), used only for CEN-01")
         out = groups.rename(columns={"eth": "eth19"})[
-            ["lsoa21cd", "sex", "band", "eth19", "population"]
+            ["lsoa21_code", "sex", "band", "eth19", "population"]
         ]
-        out = out.sort_values(["lsoa21cd", "sex", "band", "eth19"]).reset_index(drop=True)
-        _coverage_checks(ctx, "CEN-02", "RM032", out, lsoas, ["lsoa21cd", "sex", "band", "eth19"],
-                         len(lsoas) * 2 * 5 * N_ETH)  # fmt: skip
+        out = out.sort_values(["lsoa21_code", "sex", "band", "eth19"]).reset_index(drop=True)
+        _coverage_checks(
+            ctx,
+            "CEN-02",
+            "RM032",
+            out,
+            lsoas,
+            ["lsoa21_code", "sex", "band", "eth19"],
+            len(lsoas) * 2 * 5 * N_ETH,
+        )
         step.output("rm032", out)
     return out
 
@@ -114,11 +121,11 @@ def load_rm200(ctx: RunContext, lsoas: pd.Index) -> pd.DataFrame:
         )  # fmt: skip
         step.input_file("S2/" + RM200[1], path, entry["sha256"], rows=len(raw))
         df = raw.rename(
-            columns={"GEOGRAPHY_CODE": "lsoa21cd", "C2021_AGE_92": "code", "C_SEX": "sex",
+            columns={"GEOGRAPHY_CODE": "lsoa21_code", "C2021_AGE_92": "code", "C_SEX": "sex",
                      "OBS_VALUE": "population"}
         )  # fmt: skip
         df["sex"] = df["sex"].map(SEX)
-        keys = ["lsoa21cd", "sex"]
+        keys = ["lsoa21_code", "sex"]
         total = df[df["code"] == 0].set_index(keys)["population"].sort_index()
         ages = df[df["code"] > 0].copy()
         ages["age"] = (ages["code"] - 1).astype("int16")  # Nomis code = age + 1
@@ -131,9 +138,9 @@ def load_rm200(ctx: RunContext, lsoas: pd.Index) -> pd.DataFrame:
         )  # fmt: skip
         step.drop(len(df) - len(ages), "all-ages total rows (code 0), used only for CEN-03")
         step.note("Nomis age code converted to age = code - 1 (code 91 = 90+)")
-        out = ages[["lsoa21cd", "sex", "age", "population"]]
-        out = out.sort_values(["lsoa21cd", "sex", "age"]).reset_index(drop=True)
-        _coverage_checks(ctx, "CEN-04", "RM200", out, lsoas, ["lsoa21cd", "sex", "age"],
+        out = ages[["lsoa21_code", "sex", "age", "population"]]
+        out = out.sort_values(["lsoa21_code", "sex", "age"]).reset_index(drop=True)
+        _coverage_checks(ctx, "CEN-04", "RM200", out, lsoas, ["lsoa21_code", "sex", "age"],
                          len(lsoas) * 2 * (max_age + 1))  # fmt: skip
         step.output("rm200", out)
     return out
@@ -159,21 +166,21 @@ def load_ts021(ctx: RunContext, lsoas: pd.Index) -> pd.DataFrame:
             metrics={"lsoas_nonzero": int((diff != 0).sum())},
         )  # fmt: skip
         out = (
-            wide.rename_axis("lsoa21cd").rename_axis(columns="eth19").stack()
+            wide.rename_axis("lsoa21_code").rename_axis(columns="eth19").stack()
             .rename("population").reset_index()
         )  # fmt: skip
         out["eth19"] = out["eth19"].astype("int16")
         out["population"] = out["population"].astype("int64")
-        out = out.sort_values(["lsoa21cd", "eth19"]).reset_index(drop=True)
+        out = out.sort_values(["lsoa21_code", "eth19"]).reset_index(drop=True)
         step.note("wide -> long by label; 5 high-level group columns ignored (derivable)")
-        _coverage_checks(ctx, "CEN-06", "TS021", out, lsoas, ["lsoa21cd", "eth19"],
+        _coverage_checks(ctx, "CEN-06", "TS021", out, lsoas, ["lsoa21_code", "eth19"],
                          len(lsoas) * N_ETH)  # fmt: skip
         step.output("ts021", out)
     return out
 
 
 def _coverage_checks(ctx, cid, name, df, lsoas, keys, expected) -> None:
-    got = pd.Index(df["lsoa21cd"].unique())
+    got = pd.Index(df["lsoa21_code"].unique())
     check(
         ctx, cid, f"{name} covers exactly the lookup LSOAs with a complete, unique grid",
         got.sort_values().equals(lsoas.sort_values()) and _grid_complete(df, keys, expected),
@@ -208,7 +215,7 @@ def load_seed(ctx: RunContext, which: tuple, ltlas: pd.Index) -> tuple[pd.DataFr
                     rows.append((d["ltla"], int(d["ethnic_group_tb_20b"]), int(d["sex"]),
                                  int(d[dim]), o["observation"]))  # fmt: skip
         step.input_file(f"{source}/{file}", path, entry["sha256"], rows=len(rows))
-        df = pd.DataFrame(rows, columns=["ltla21cd", "eth", "sex", age_col, "population"])
+        df = pd.DataFrame(rows, columns=["ltla21_code", "eth", "sex", age_col, "population"])
         dna = df[df["eth"] == -8]
         check(
             ctx, f"CEN-07-{classification}", f"S3 {classification}: 'Does not apply' = 0",
@@ -220,15 +227,15 @@ def load_seed(ctx: RunContext, which: tuple, ltlas: pd.Index) -> tuple[pd.DataFr
         df["sex"] = df["sex"].map(SEX)
         df[["eth19", age_col]] = df[["eth19", age_col]].astype("int16")
         df["population"] = df["population"].astype("int64")
-        df = df.sort_values(["ltla21cd", "eth19", "sex", age_col]).reset_index(drop=True)
+        df = df.sort_values(["ltla21_code", "eth19", "sex", age_col]).reset_index(drop=True)
         check(
             ctx, f"CEN-08-{classification}",
             f"S3 {classification}: requested areas = lookup LTLAs; returned + blocked = requested",
             set(requested) == set(ltlas)
-            and set(df["ltla21cd"]) | set(blocked) == set(requested)
-            and not set(df["ltla21cd"]) & set(blocked),
+            and set(df["ltla21_code"]) | set(blocked) == set(requested)
+            and not set(df["ltla21_code"]) & set(blocked),
             stage=STAGE,
-            metrics={"requested": len(set(requested)), "returned": int(df["ltla21cd"].nunique()),
+            metrics={"requested": len(set(requested)), "returned": int(df["ltla21_code"].nunique()),
                      "blocked": sorted(blocked)},
         )  # fmt: skip
         step.note(f"blocked LTLAs ({len(blocked)}): {', '.join(sorted(blocked))}")
@@ -270,9 +277,9 @@ def band_totals(cfg: Config, rm032: pd.DataFrame, rm200: pd.DataFrame) -> pd.Dat
     a2b = age_to_code(classes, "rm032_5", cfg.age.max_age)
     t200 = (
         rm200.assign(band=rm200["age"].map(a2b))
-        .groupby(["lsoa21cd", "sex", "band"])["population"].sum().rename("t200")
+        .groupby(["lsoa21_code", "sex", "band"])["population"].sum().rename("t200")
     )  # fmt: skip
-    t032 = rm032.groupby(["lsoa21cd", "sex", "band"])["population"].sum().rename("t032")
+    t032 = rm032.groupby(["lsoa21_code", "sex", "band"])["population"].sum().rename("t032")
     return pd.concat([t032, t200], axis=1).reset_index()
 
 
@@ -281,10 +288,10 @@ def compare_tables(ctx: RunContext, rm032, rm200, ts021, seed91, lookup, focus: 
     out = {}
     with logged_step(ctx, "census.compare_tables") as step:
         bt = band_totals(ctx.cfg, rm032, rm200)
-        ls = bt.groupby(["lsoa21cd", "sex"])[["t032", "t200"]].sum()
+        ls = bt.groupby(["lsoa21_code", "sex"])[["t032", "t200"]].sum()
         out["rm032_vs_rm200_lsoa_sex"] = _dist(ls["t032"] - ls["t200"], ls["t200"])
         out["rm032_vs_rm200_lsoa_sex_band"] = _dist(bt["t032"] - bt["t200"], bt["t200"])
-        fb = bt[bt["lsoa21cd"].isin(focus)]
+        fb = bt[bt["lsoa21_code"].isin(focus)]
         out["focus_rm032_vs_rm200_lsoa_sex_band"] = _dist(fb["t032"] - fb["t200"], fb["t200"])
         out["band_zero_inconsistency"] = {
             "rm032_zero_rm200_pos": int(((bt["t032"] == 0) & (bt["t200"] > 0)).sum()),
@@ -292,8 +299,8 @@ def compare_tables(ctx: RunContext, rm032, rm200, ts021, seed91, lookup, focus: 
             "persons_rm032_zero_rm200_pos": int(bt.loc[bt["t032"] == 0, "t200"].sum()),
             "persons_rm200_zero_rm032_pos": int(bt.loc[bt["t200"] == 0, "t032"].sum()),
         }
-        e032 = rm032.groupby(["lsoa21cd", "eth19"])["population"].sum()
-        e021 = ts021.set_index(["lsoa21cd", "eth19"])["population"]
+        e032 = rm032.groupby(["lsoa21_code", "eth19"])["population"].sum()
+        e021 = ts021.set_index(["lsoa21_code", "eth19"])["population"]
         out["rm032_vs_ts021_lsoa_eth"] = _dist(e032 - e021, e021)
         out["totals"] = {
             "rm032": int(rm032["population"].sum()),
@@ -306,9 +313,9 @@ def compare_tables(ctx: RunContext, rm032, rm200, ts021, seed91, lookup, focus: 
         )
         a2b = age_to_code(classes, "rm032_5", ctx.cfg.age.max_age)
         s = seed91.assign(band=seed91["age"].map(a2b))
-        s = s.groupby(["ltla21cd", "eth19", "sex", "band"])["population"].sum()
-        r = rm032.merge(lookup[["lsoa21cd", "ltla21cd"]], on="lsoa21cd")
-        r = r.groupby(["ltla21cd", "eth19", "sex", "band"])["population"].sum()
+        s = s.groupby(["ltla21_code", "eth19", "sex", "band"])["population"].sum()
+        r = rm032.merge(lookup[["lsoa21_code", "ltla21_code"]], on="lsoa21_code")
+        r = r.groupby(["ltla21_code", "eth19", "sex", "band"])["population"].sum()
         r = r.reindex(s.index)
         out["seed91_vs_rm032_ltla_eth_sex_band"] = _dist(s - r, r)
         for k, v in out.items():
@@ -325,7 +332,7 @@ def compare_tables(ctx: RunContext, rm032, rm200, ts021, seed91, lookup, focus: 
 
 @dataclass
 class Reconciled:
-    margins: pd.DataFrame  # lsoa21cd, sex, band, kind, key, population (float)
+    margins: pd.DataFrame  # lsoa21_code, sex, band, kind, key, population (float)
     summary: dict
 
 
@@ -360,12 +367,12 @@ def reconcile_margins(
     with logged_step(ctx, f"census.reconcile_margins[{source}]", params={"source": source}) as step:
         step.input("rm032", rm032)
         step.input("rm200", rm200)
-        bt = band_totals(cfg, rm032, rm200).set_index(["lsoa21cd", "sex", "band"])
+        bt = band_totals(cfg, rm032, rm200).set_index(["lsoa21_code", "sex", "band"])
         target = {"rm200": bt["t200"], "rm032": bt["t032"], "mean": bt.mean(axis=1)}[source]
         target = target.astype(float).rename("target")
 
         # --- ethnic margins
-        e = rm032.set_index(["lsoa21cd", "sex", "band"]).join(bt["t032"]).join(target)
+        e = rm032.set_index(["lsoa21_code", "sex", "band"]).join(bt["t032"]).join(target)
         e["population"] = e["population"].astype(float)
         has = e["t032"] > 0
         e.loc[has, "population"] = (
@@ -374,27 +381,27 @@ def reconcile_margins(
         need_eth = e.index[(~has) & (e["target"] > 0)].unique()
         n_eth_fb = len(need_eth)
         if n_eth_fb:
-            pooled = rm032.groupby(["lsoa21cd", "sex", "eth19"])["population"].sum()
-            pooled = pooled / pooled.groupby(["lsoa21cd", "sex"]).transform("sum")
+            pooled = rm032.groupby(["lsoa21_code", "sex", "eth19"])["population"].sum()
+            pooled = pooled / pooled.groupby(["lsoa21_code", "sex"]).transform("sum")
             fb = e.loc[need_eth].reset_index()
             fb = fb.merge(
-                pooled.rename("share").reset_index(), on=["lsoa21cd", "sex", "eth19"], how="left"
+                pooled.rename("share").reset_index(), on=["lsoa21_code", "sex", "eth19"], how="left"
             )
             if fb["share"].isna().any():  # LSOA x sex with no RM032 people at all: LTLA seed mix
                 seed_mix = _seed_eth_mix(seed91, a2b)
-                fb = fb.merge(lookup[["lsoa21cd", "ltla21cd"]], on="lsoa21cd").merge(
-                    seed_mix, on=["ltla21cd", "sex", "band", "eth19"], how="left"
+                fb = fb.merge(lookup[["lsoa21_code", "ltla21_code"]], on="lsoa21_code").merge(
+                    seed_mix, on=["ltla21_code", "sex", "band", "eth19"], how="left"
                 )
                 fb["share"] = fb["share"].fillna(fb["seed_share"])
             fb["population"] = fb["share"].fillna(0) * fb["target"]
-            fb = fb.set_index(["lsoa21cd", "sex", "band", "eth19"])["population"]
+            fb = fb.set_index(["lsoa21_code", "sex", "band", "eth19"])["population"]
             e = e.set_index("eth19", append=True)
             e.loc[fb.index, "population"] = fb
             e = e.reset_index("eth19")
-        eth = e.reset_index()[["lsoa21cd", "sex", "band", "eth19", "population"]]
+        eth = e.reset_index()[["lsoa21_code", "sex", "band", "eth19", "population"]]
 
         # --- age margins
-        a = rm200.assign(band=rm200["age"].map(a2b)).set_index(["lsoa21cd", "sex", "band"])
+        a = rm200.assign(band=rm200["age"].map(a2b)).set_index(["lsoa21_code", "sex", "band"])
         a = a.join(bt["t200"]).join(target)
         a["population"] = a["population"].astype(float)
         has = a["t200"] > 0
@@ -406,15 +413,17 @@ def reconcile_margins(
         if n_age_fb:
             shape = _seed_age_shape(seed91, a2b)
             fb = (
-                a.loc[need_age].reset_index().merge(lookup[["lsoa21cd", "ltla21cd"]], on="lsoa21cd")
+                a.loc[need_age]
+                .reset_index()
+                .merge(lookup[["lsoa21_code", "ltla21_code"]], on="lsoa21_code")
             )
-            fb = fb.merge(shape, on=["ltla21cd", "sex", "age"], how="left")
+            fb = fb.merge(shape, on=["ltla21_code", "sex", "age"], how="left")
             fb["population"] = fb["shape"].fillna(0) * fb["target"]
-            fb = fb.set_index(["lsoa21cd", "sex", "band", "age"])["population"]
+            fb = fb.set_index(["lsoa21_code", "sex", "band", "age"])["population"]
             a = a.set_index("age", append=True)
             a.loc[fb.index, "population"] = fb
             a = a.reset_index("age")
-        age = a.reset_index()[["lsoa21cd", "sex", "band", "age", "population"]]
+        age = a.reset_index()[["lsoa21_code", "sex", "band", "age", "population"]]
 
         # --- adjustment distribution
         adj = (target - bt["t032"]).rename("adj032"), (target - bt["t200"]).rename("adj200")
@@ -438,15 +447,15 @@ def reconcile_margins(
                 age.rename(columns={"age": "key"}).assign(kind="age"),
             ],
             ignore_index=True,
-        )[["lsoa21cd", "sex", "band", "kind", "key", "population"]]
+        )[["lsoa21_code", "sex", "band", "kind", "key", "population"]]
         margins["key"] = margins["key"].astype("int16")
-        margins = margins.sort_values(["lsoa21cd", "sex", "band", "kind", "key"]).reset_index(
+        margins = margins.sort_values(["lsoa21_code", "sex", "band", "kind", "key"]).reset_index(
             drop=True
         )
         step.output("margins", margins)
 
     # Both margins must now agree on every band total, exactly up to float error.
-    g = margins.groupby(["lsoa21cd", "sex", "band", "kind"])["population"].sum().unstack("kind")
+    g = margins.groupby(["lsoa21_code", "sex", "band", "kind"])["population"].sum().unstack("kind")
     gap = (g["eth19"] - g["age"]).abs().max()
     check(
         ctx,
@@ -482,18 +491,18 @@ def reconcile_margins(
 
 def _seed_eth_mix(seed91: pd.DataFrame, a2b: pd.Series) -> pd.DataFrame:
     s = seed91.assign(band=seed91["age"].map(a2b))
-    s = s.groupby(["ltla21cd", "sex", "band", "eth19"])["population"].sum()
-    s = s / s.groupby(["ltla21cd", "sex", "band"]).transform("sum")
+    s = s.groupby(["ltla21_code", "sex", "band", "eth19"])["population"].sum()
+    s = s / s.groupby(["ltla21_code", "sex", "band"]).transform("sum")
     return s.rename("seed_share").reset_index()
 
 
 def _seed_age_shape(seed91: pd.DataFrame, a2b: pd.Series) -> pd.DataFrame:
-    s = seed91.groupby(["ltla21cd", "sex", "age"])["population"].sum().reset_index()
+    s = seed91.groupby(["ltla21_code", "sex", "age"])["population"].sum().reset_index()
     s["band"] = s["age"].map(a2b)
-    s["shape"] = s["population"] / s.groupby(["ltla21cd", "sex", "band"])["population"].transform(
-        "sum"
-    )
-    return s[["ltla21cd", "sex", "age", "shape"]]
+    s["shape"] = s["population"] / s.groupby(["ltla21_code", "sex", "band"])[
+        "population"
+    ].transform("sum")
+    return s[["ltla21_code", "sex", "age", "shape"]]
 
 
 # --------------------------------------------------------------------------------------------
@@ -506,9 +515,9 @@ def run(ctx: RunContext) -> dict:
 
     cfg = ctx.cfg
     lookup = load_lookup(cfg)
-    lsoas = pd.Index(lookup["lsoa21cd"])
-    ltlas = pd.Index(lookup["ltla21cd"].unique())
-    focus = pd.Index(lookup.loc[lookup["in_focus_icb"], "lsoa21cd"])
+    lsoas = pd.Index(lookup["lsoa21_code"])
+    ltlas = pd.Index(lookup["ltla21_code"].unique())
+    focus = pd.Index(lookup.loc[lookup["in_focus_icb"], "lsoa21_code"])
 
     rm032 = load_rm032(ctx, lsoas)
     rm200 = load_rm200(ctx, lsoas)
@@ -520,7 +529,7 @@ def run(ctx: RunContext) -> dict:
 
     blocked = pd.DataFrame(
         [(c, "age_91a") for c in blocked91] + [(c, "age_23a") for c in blocked23],
-        columns=["ltla21cd", "classification"],
+        columns=["ltla21_code", "classification"],
     )
     srcs = {
         "rm032": [{"id": "S1", "file": RM032[1]}],

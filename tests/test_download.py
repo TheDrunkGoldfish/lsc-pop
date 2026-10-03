@@ -343,3 +343,56 @@ def test_seed_manifest_copies_reference_once(project_copy, tmp_path):
     target.write_text("changed")
     dl.seed_manifest(moved, ref)
     assert target.read_text() == "changed"  # never overwritten
+
+
+# --- ODS directory (ods_api_orgs) -------------------------------------------------------------
+
+ODS_SEARCH = "https://ods.test/organisations?PrimaryRoleId=RO197&Status=Active&Limit=1000"
+
+
+def _ods_body(codes):
+    def body(url):
+        if url == ODS_SEARCH:
+            orgs = [{"OrgId": c, "OrgLink": f"https://ods.test/organisations/{c}"} for c in codes]
+            return json.dumps({"Organisations": orgs}).encode()
+        code = url.rsplit("/", 1)[1]
+        return json.dumps({"Organisation": {"OrgId": {"extension": code}, "Name": code}}).encode()
+
+    return body
+
+
+def _ods_file(**kw):
+    return [{"name": "o.jsonl.gz", "kind": "ods_api_orgs", "url": ODS_SEARCH, **kw}]
+
+
+def test_ods_orgs_stored_verbatim_sorted_by_code(project_copy):
+    import gzip
+
+    cfg = _registry(project_copy, files=_ods_file(expected_rows=3))
+    dl.download(cfg, session=FakeSession(_ods_body(["RXN", "R0A", "RXL"])), log=lambda *a: None)
+    path = project_copy / "data" / "raw" / "S99" / "o.jsonl.gz"
+    with gzip.open(path, "rt") as f:
+        lines = [json.loads(x) for x in f]
+    assert [x["org_id"] for x in lines] == ["R0A", "RXL", "RXN"]
+    assert lines[0]["record"]["Name"] == "R0A"
+
+
+def test_ods_orgs_output_is_deterministic(project_copy):
+    cfg = _registry(project_copy, files=_ods_file())
+    dl.download(cfg, session=FakeSession(_ods_body(["RXN", "RXL"])), log=lambda *a: None)
+    first = dl.load_manifest(cfg.resolve(cfg.paths.manifest))["files"][0]["sha256"]
+    (project_copy / "data" / "raw" / "S99" / "o.jsonl.gz").chmod(0o644)
+    (project_copy / "data" / "raw" / "S99" / "o.jsonl.gz").unlink()
+    m = dl.load_manifest(cfg.resolve(cfg.paths.manifest))
+    m["files"] = []
+    dl.save_manifest(cfg.resolve(cfg.paths.manifest), m)
+    dl.download(cfg, session=FakeSession(_ods_body(["RXL", "RXN"])), log=lambda *a: None)
+    assert dl.load_manifest(cfg.resolve(cfg.paths.manifest))["files"][0]["sha256"] == first
+
+
+def test_ods_orgs_expected_rows_mismatch_fails(project_copy):
+    import pytest
+
+    cfg = _registry(project_copy, files=_ods_file(expected_rows=5))
+    with pytest.raises(dl.FetchError, match="expected 5"):
+        dl.download(cfg, session=FakeSession(_ods_body(["RXL"])), log=lambda *a: None)

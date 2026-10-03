@@ -509,12 +509,12 @@ def render_figures(cfg: Config) -> list[Path]:
     # Fig 1: base vs seed at LTLA x eth6 x sex x 10-year band (focus ICB LTLAs).
     comp = pd.read_parquet(cfg.resolve(cfg.paths.interim) / "base2021" / "ltla_comparison.parquet")
     lk = pd.read_parquet(cfg.resolve(cfg.paths.interim) / "geography" / "lsoa_lookup.parquet")
-    foc = set(lk.loc[lk["in_focus_icb"], "ltla21cd"])
-    c = comp[comp["ltla21cd"].isin(foc)].merge(
+    foc = set(lk.loc[lk["in_focus_icb"], "ltla21_code"])
+    c = comp[comp["ltla21_code"].isin(foc)].merge(
         eth[["code_19", "code_6"]], left_on="eth19", right_on="code_19"
     )
     c["band"] = (c["age"] // 10).clip(upper=9)
-    g = c.groupby(["ltla21cd", "code_6", "sex", "band"])[["seed", "base"]].sum().reset_index()
+    g = c.groupby(["ltla21_code", "code_6", "sex", "band"])[["seed", "base"]].sum().reset_index()
     fig, ax = plt.subplots(figsize=(6.4, 5.6), facecolor=SURFACE)
     _style(ax)
     ax.scatter(g["seed"] + 1, g["base"] + 1, s=10, color=SERIES[0], alpha=0.55, linewidths=0)

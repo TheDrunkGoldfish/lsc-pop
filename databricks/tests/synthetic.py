@@ -433,6 +433,26 @@ def make_project(root: Path, seed: int = 7) -> Path:
         ),
     )
 
+    # S10 ODS directory snapshot: each trust has an active RE5 to the ICB, an old inactive RE5 to
+    # another ICB, and an RE8 partner link (the pipeline must use only the active RE5).
+    def _rel(rel_id, code, status, start, end=None):
+        dates = {"Type": "Operational", "Start": start, **({"End": end} if end else {})}
+        target = {"OrgId": {"extension": code}, "PrimaryRoleId": {"id": "RO261"}}
+        return {"id": rel_id, "Status": status, "Date": [dates], "Target": target}
+
+    lines = []
+    for t in TRUSTS:
+        rels = [
+            _rel("RE5", "QOLD", "Inactive", "2015-04-01", "2020-03-31"),
+            _rel("RE5", "QE1", "Active", "2020-04-01"),
+            _rel("RE8", "QE1", "Active", "2023-07-01"),
+        ]
+        rec = {"OrgId": {"extension": t}, "Name": f"Trust {t}", "Rels": {"Rel": rels}}
+        lines.append(json.dumps({"org_id": t, "record": rec}, sort_keys=True))
+    (raw / "S10").mkdir(parents=True)
+    with gzip.GzipFile(raw / "S10" / "ods_nhs_trusts.jsonl.gz", "wb", mtime=0) as gz:
+        gz.write(("\n".join(lines) + "\n").encode())
+
     # Manifest of everything written (as the download stage would record it)
     entries = []
     for p in sorted(raw.rglob("*")):

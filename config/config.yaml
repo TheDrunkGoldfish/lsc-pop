@@ -81,7 +81,7 @@ catchments:                   # ADR-0019. OHID acute trust catchments (S9).
   admission_type: All admissions
 
 # Geography lookups (ADR-0012, ADR-0014). Raw column -> standard column. Standard names are
-# vintage-free (icb_cd, lad_cd, ...); the vintage is recorded in outputs. When ICBs merge or a new
+# vintage-free (icb_code, lad_code, ...); the vintage is recorded in outputs. When ICBs merge or a new
 # lookup is published: add the new file to config/sources.yaml, then point `nhs` at it and update
 # the raw column names here. See docs/updating.md.
 geography:
@@ -91,38 +91,38 @@ geography:
     file: lsoa21_sicbl26_icb26_nhser26_lad26.csv
     vintage: "2026-04"
     columns:
-      LSOA21CD: lsoa21cd
-      LSOA21NM: lsoa21nm
-      SICBL26CD: sicbl_cd
-      SICBL26CDH: sicbl_ods
-      SICBL26NM: sicbl_nm
-      ICB26CD: icb_cd
-      ICB26CDH: icb_ods
-      ICB26NM: icb_nm
-      NHSER26CD: nhser_cd
-      NHSER26CDH: nhser_ods
-      NHSER26NM: nhser_nm
-      LAD26CD: lad_cd
-      LAD26NM: lad_nm
+      LSOA21CD: lsoa21_code
+      LSOA21NM: lsoa21_name
+      SICBL26CD: sicbl_code
+      SICBL26CDH: sicbl_ods_code
+      SICBL26NM: sicbl_name
+      ICB26CD: icb_code
+      ICB26CDH: icb_ods_code
+      ICB26NM: icb_name
+      NHSER26CD: nhser_code
+      NHSER26CDH: nhser_ods_code
+      NHSER26NM: nhser_name
+      LAD26CD: lad_code
+      LAD26NM: lad_name
   census:                           # Census 2021 geography: does not change with NHS reorganisations
     source: S7b
     file: oa21_lsoa21_msoa21_lad22_exactfit_v3.csv
     vintage: "2021-12"
     columns:
-      LSOA21CD: lsoa21cd
-      MSOA21CD: msoa21cd
-      MSOA21NM: msoa21nm
-      LAD22CD: ltla21cd
-      LAD22NM: ltla21nm
+      LSOA21CD: lsoa21_code
+      MSOA21CD: msoa21_code
+      MSOA21NM: msoa21_name
+      LAD22CD: ltla21_code
+      LAD22NM: ltla21_name
   ltla_region:
     source: S7c
     file: lad22_rgn22.csv
     vintage: "2022-12"
-    key: ltla21cd
+    key: ltla21_code
     columns:
-      LAD22CD: ltla21cd
-      RGN22CD: rgn21cd
-      RGN22NM: rgn21nm
+      LAD22CD: ltla21_code
+      RGN22CD: rgn21_code
+      RGN22NM: rgn21_name
 
 paths:
   raw: data/raw

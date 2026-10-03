@@ -387,7 +387,7 @@ def write_output(
 
 @dataclass(frozen=True)
 class Cube:
-    """A dense array with named, labelled dimensions, e.g. (lsoa21cd, sex, age, eth19)."""
+    """A dense array with named, labelled dimensions, e.g. (lsoa21_code, sex, age, eth19)."""
 
     data: Any  # numpy.ndarray
     dims: tuple[str, ...]

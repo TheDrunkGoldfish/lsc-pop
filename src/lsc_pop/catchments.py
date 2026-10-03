@@ -3,11 +3,13 @@
 There are no aggregate tables (ADR-0018). This stage builds the **bridge** that lets SQL/BI
 apportion LSOA populations to trusts, plus the trust dimension, and checks the result against OHID.
 
-* ``bridge_lsoa_trust``: lsoa21cd, msoa21cd, trust_code, proportion_published,
+* ``bridge_lsoa_trust``: lsoa21_code, msoa21_code, trust_code, proportion_published,
   proportion_rescaled, fptp. Each LSOA takes its MSOA 2021's OHID proportions for the configured
   catchment year and admission type. A ``UNASSIGNED`` row per LSOA holds 1 − Σ published, so
   published proportions sum to exactly 1. Rescaled = published ÷ Σ (UNASSIGNED = 0).
-* ``dim_trust``: the 134 acute trusts (OHID T7) + ``UNASSIGNED``, with ``is_focus``.
+* ``dim_trust``: the 134 acute trusts (OHID T7) + ``UNASSIGNED``, with ``is_focus`` and
+  ``host_icb_code`` (the ICB whose geography the trust is in, from the ODS directory, S10;
+  ADR-0025). That's an organisational link, separate from the catchment bridge.
 * Comparators (informational, written to the run directory):
   ``trust_comparison_totals.csv`` (vs OHID T1), ``trust_comparison_ethnicity.csv`` (vs T5, both
   selection methods), ``trust_comparison_imd.csv`` (vs T6).
@@ -15,11 +17,14 @@ apportion LSOA populations to trusts, plus the trust dimension, and checks the r
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
 from lsc_pop.download import raw_file
 from lsc_pop.ods import read_ods_sheets, sheet_to_frame
+from lsc_pop.ods_directory import read_relationships
 from lsc_pop.provenance import RunContext, logged_step, write_output
 from lsc_pop.validate import check
 
@@ -59,33 +64,33 @@ def build_bridge(ctx: RunContext, t2: pd.DataFrame, lookup: pd.DataFrame) -> pd.
         prop = pd.DataFrame(
             {
                 "trust_code": t2["Trust code"].astype(str),
-                "msoa21cd": t2["MSOA21CD"].astype(str),
+                "msoa21_code": t2["MSOA21CD"].astype(str),
                 "proportion_published": t2[P_COL].astype(float),
                 "fptp": _norm(t2["First past the post (FPTP)"]).isin(["true", "1"]),
             }
         )
         step.input("ohid_t2", prop)
-        msoas = set(lookup["msoa21cd"])
+        msoas = set(lookup["msoa21_code"])
         check(
             ctx,
             "CAT-01",
             "OHID MSOAs = lookup MSOAs (MSOA 2021, England)",
-            set(prop["msoa21cd"]) == msoas,
+            set(prop["msoa21_code"]) == msoas,
             stage=STAGE,
             metrics={
-                "ohid": prop["msoa21cd"].nunique(),
+                "ohid": prop["msoa21_code"].nunique(),
                 "lookup": len(msoas),
-                "missing": len(msoas - set(prop["msoa21cd"])),
+                "missing": len(msoas - set(prop["msoa21_code"])),
             },
         )
         check(
             ctx,
             "CAT-02",
             "One OHID row per MSOA x trust",
-            not prop.duplicated(["msoa21cd", "trust_code"]).any(),
+            not prop.duplicated(["msoa21_code", "trust_code"]).any(),
             stage=STAGE,
         )
-        msum = prop.groupby("msoa21cd")["proportion_published"].sum()
+        msum = prop.groupby("msoa21_code")["proportion_published"].sum()
         check(
             ctx,
             "CAT-03",
@@ -98,7 +103,7 @@ def build_bridge(ctx: RunContext, t2: pd.DataFrame, lookup: pd.DataFrame) -> pd.
                 "max": float(msum.max()),
             },
         )
-        fp = prop.groupby("msoa21cd")["fptp"].sum()
+        fp = prop.groupby("msoa21_code")["fptp"].sum()
         check(
             ctx,
             "CAT-04",
@@ -111,28 +116,28 @@ def build_bridge(ctx: RunContext, t2: pd.DataFrame, lookup: pd.DataFrame) -> pd.
 
         un = (1 - msum).clip(lower=0).rename("proportion_published").reset_index()
         un = un.assign(trust_code=UNASSIGNED, fptp=False)
-        prop = prop.join(msum.rename("msum"), on="msoa21cd")
+        prop = prop.join(msum.rename("msum"), on="msoa21_code")
         prop["proportion_rescaled"] = prop["proportion_published"] / prop["msum"]
         un["proportion_rescaled"] = 0.0
         m = pd.concat(
             [prop.drop(columns="msum"), un[un["proportion_published"] > 0]], ignore_index=True
         )
-        bridge = lookup[["lsoa21cd", "msoa21cd"]].merge(m, on="msoa21cd", how="inner")
+        bridge = lookup[["lsoa21_code", "msoa21_code"]].merge(m, on="msoa21_code", how="inner")
         bridge = bridge[
             [
-                "lsoa21cd",
-                "msoa21cd",
+                "lsoa21_code",
+                "msoa21_code",
                 "trust_code",
                 "proportion_published",
                 "proportion_rescaled",
                 "fptp",
             ]
         ]
-        bridge = bridge.sort_values(["lsoa21cd", "trust_code"]).reset_index(drop=True)
+        bridge = bridge.sort_values(["lsoa21_code", "trust_code"]).reset_index(drop=True)
         step.add(
             int((bridge["trust_code"] == UNASSIGNED).sum()), "UNASSIGNED rows (1 − Σ published)"
         )
-        s = bridge.groupby("lsoa21cd")[["proportion_published", "proportion_rescaled"]].sum()
+        s = bridge.groupby("lsoa21_code")[["proportion_published", "proportion_rescaled"]].sum()
         check(
             ctx,
             "CAT-05",
@@ -145,7 +150,73 @@ def build_bridge(ctx: RunContext, t2: pd.DataFrame, lookup: pd.DataFrame) -> pd.
     return bridge
 
 
-def build_dim_trust(ctx: RunContext, t7: pd.DataFrame, bridge: pd.DataFrame) -> pd.DataFrame:
+def host_icbs(
+    ctx: RunContext,
+    rels: pd.DataFrame,
+    lookup: pd.DataFrame,
+    t7: pd.DataFrame,
+    source: tuple[Path, str] | None = None,
+) -> pd.Series:
+    """Trust code -> ``icb_code`` of the ICB the trust is located in (ODS directory, S10; ADR-0025).
+
+    ODS has no "reports to" relationship for NHS trusts (they are independent bodies), so the host
+    ICB is the one ODS says the trust "is located in the geography of" (RE5): exactly one per trust.
+    """
+    cfg = ctx.cfg.catchments.host_icb
+    trusts = t7["Trust code"].astype(str)
+    with logged_step(ctx, "catchments.host_icb") as step:
+        if source:  # (path, sha256) of the raw snapshot
+            step.input_file(f"{cfg.source}/{cfg.file}", source[0], source[1], rows=len(rels))
+        else:
+            step.input("ods_relationships", rels)
+        r = rels[
+            (rels["relationship_id"] == cfg.relationship)
+            & (rels["target_role_id"] == cfg.target_role)
+            & (rels["status"] == "Active")
+            & rels["org_code"].isin(trusts)
+        ]
+        per_trust = r.groupby("org_code").size().reindex(trusts, fill_value=0)
+        ods_to_icb = lookup.drop_duplicates("icb_ods_code").set_index("icb_ods_code")["icb_code"]
+        host = r.drop_duplicates("org_code").set_index("org_code")["target_code"].map(ods_to_icb)
+        host = host.reindex(trusts)
+        host.index = trusts.to_numpy()
+        check(
+            ctx,
+            "CAT-12",
+            "Every acute trust has exactly one active ODS host-ICB link, and it is a current ICB",
+            bool((per_trust == 1).all() and host.notna().all()),
+            stage=STAGE,
+            metrics={
+                "trusts": len(trusts),
+                "not_exactly_one": sorted(per_trust.index[per_trust != 1]),
+                "unmapped_icb": sorted(host.index[host.isna()]),
+            },
+        )
+        site_icb = t7.set_index(trusts.to_numpy())["Lower super output area code (LSOA21CD)"].map(
+            lookup.set_index("lsoa21_code")["icb_code"]
+        )
+        agree = host == site_icb
+        check(
+            ctx,
+            "CAT-13",
+            "Host ICB agrees with the ICB of the trust's main-site LSOA (corroboration, "
+            "informational)",
+            True,
+            stage=STAGE,
+            hard=False,
+            metrics={
+                "agree": int(agree.sum()),
+                "of": len(host),
+                "disagree": sorted(agree.index[~agree]),
+            },
+        )
+        step.output("host_icb", host.rename("host_icb_code").reset_index())
+    return host
+
+
+def build_dim_trust(
+    ctx: RunContext, t7: pd.DataFrame, bridge: pd.DataFrame, host_icb: pd.Series
+) -> pd.DataFrame:
     focus = set(ctx.cfg.focus_trusts)
     d = pd.DataFrame(
         {
@@ -153,7 +224,7 @@ def build_dim_trust(ctx: RunContext, t7: pd.DataFrame, bridge: pd.DataFrame) -> 
             "trust_name": t7["Trust name"],
             "trust_type": t7["Trust type"],
             "commissioning_region": t7["Commisioning region"],
-            "site_lsoa21cd": t7["Lower super output area code (LSOA21CD)"],
+            "site_lsoa21_code": t7["Lower super output area code (LSOA21CD)"],
         }
     )
     d = pd.concat(
@@ -166,7 +237,7 @@ def build_dim_trust(ctx: RunContext, t7: pd.DataFrame, bridge: pd.DataFrame) -> 
                         "trust_name": "Unassigned (OHID suppressed/rounded flows; ADR-0019)",
                         "trust_type": "n/a",
                         "commissioning_region": "n/a",
-                        "site_lsoa21cd": "",
+                        "site_lsoa21_code": "",
                     }
                 ]
             ),
@@ -174,6 +245,7 @@ def build_dim_trust(ctx: RunContext, t7: pd.DataFrame, bridge: pd.DataFrame) -> 
         ignore_index=True,
     )
     d["is_focus"] = d["trust_code"].isin(focus)
+    d["host_icb_code"] = d["trust_code"].map(host_icb)  # None for UNASSIGNED
     d = d.sort_values("trust_code").reset_index(drop=True)
     missing = set(bridge["trust_code"]) - set(d["trust_code"])
     check(
@@ -200,7 +272,7 @@ def compare_with_ohid(
 ) -> dict[str, pd.DataFrame]:
     """Trust totals, 5-group ethnicity and mean IMD score vs OHID T1/T5/T6 (informational)."""
     b = bridge[bridge["trust_code"] != UNASSIGNED].copy()
-    b["pop"] = b["lsoa21cd"].map(lsoa_pop)
+    b["pop"] = b["lsoa21_code"].map(lsoa_pop)
     tot = b.assign(
         pub=b["proportion_published"] * b["pop"], res=b["proportion_rescaled"] * b["pop"]
     )
@@ -218,7 +290,7 @@ def compare_with_ohid(
     unassigned = float(
         (
             bridge.loc[bridge["trust_code"] == UNASSIGNED, "proportion_published"]
-            * bridge.loc[bridge["trust_code"] == UNASSIGNED, "lsoa21cd"].map(lsoa_pop)
+            * bridge.loc[bridge["trust_code"] == UNASSIGNED, "lsoa21_code"].map(lsoa_pop)
         ).sum()
     )
     recon = float(tot["pub"].sum() + unassigned)
@@ -249,11 +321,13 @@ def compare_with_ohid(
             if method.startswith("All")
             else pd.Series(1.0, index=bb.index)
         )
-        e = lsoa_eth5.loc[bb["lsoa21cd"]].to_numpy() * w.to_numpy()[:, None]
+        e = lsoa_eth5.loc[bb["lsoa21_code"]].to_numpy() * w.to_numpy()[:, None]
         agg = pd.DataFrame(e, columns=groups).groupby(bb["trust_code"].to_numpy()).sum()
         imd = (
             pd.Series(
-                w.to_numpy() * bb["pop"].to_numpy() * imd_score.reindex(bb["lsoa21cd"]).to_numpy()
+                w.to_numpy()
+                * bb["pop"].to_numpy()
+                * imd_score.reindex(bb["lsoa21_code"]).to_numpy()
             )
             .groupby(bb["trust_code"].to_numpy())
             .sum()
@@ -344,7 +418,15 @@ def compare_with_ohid(
 
 
 UTLA_LOOKUP = ("S7d", "lad22_ctyua22.csv")  # diagnostic only
-DIAG_LEVELS = ["lsoa21cd", "msoa21cd", "ltla21cd", "utla21cd", "sicbl_cd", "icb_cd", "nhser_cd"]
+DIAG_LEVELS = [
+    "lsoa21_code",
+    "msoa21_code",
+    "ltla21_code",
+    "utla21_code",
+    "sicbl_code",
+    "icb_code",
+    "nhser_code",
+]
 
 
 def ohid_5pct_diagnostic(
@@ -363,16 +445,16 @@ def ohid_5pct_diagnostic(
     and trust percentages are recomputed with the 5%-threshold, share-weighted method.
     Diagnostic only: nothing here changes the estimates.
     """
-    lk = lookup.set_index("lsoa21cd", drop=False)
+    lk = lookup.set_index("lsoa21_code", drop=False)
     try:
         path, _ = raw_file(ctx.cfg, *UTLA_LOOKUP)
         utla = pd.read_csv(path, encoding="utf-8-sig").set_index("LTLA22CD")["UTLA22CD"]
-        lk = lk.assign(utla21cd=lk["ltla21cd"].map(utla))
+        lk = lk.assign(utla21_code=lk["ltla21_code"].map(utla))
     except FileNotFoundError:
-        lk = lk.assign(utla21cd=pd.NA)
+        lk = lk.assign(utla21_code=pd.NA)
     groups = list(lsoa_eth5.columns)
     b = bridge[(bridge["trust_code"] != UNASSIGNED) & (bridge["proportion_published"] >= OHID_5PCT)]
-    w = b["proportion_published"].to_numpy() * lsoa_pop.reindex(b["lsoa21cd"]).to_numpy()
+    w = b["proportion_published"].to_numpy() * lsoa_pop.reindex(b["lsoa21_code"]).to_numpy()
     oh = ohid_eth[ohid_eth["selection_method"] == "All (5% and above)"].set_index("trust_code")
     rows = []
     for level in DIAG_LEVELS:
@@ -381,7 +463,7 @@ def ohid_5pct_diagnostic(
         g = lk.loc[lsoa_eth5.index, level].to_numpy()
         agg = lsoa_eth5.groupby(g).sum()
         mix = agg.div(agg.sum(axis=1), axis=0).loc[g].set_axis(lsoa_eth5.index)
-        m = mix.loc[b["lsoa21cd"]].mul(w, axis=0)
+        m = mix.loc[b["lsoa21_code"]].mul(w, axis=0)
         t = m.groupby(b["trust_code"].to_numpy()).sum()
         t = t.div(t.sum(axis=1), axis=0) * 100
         j = t.join(oh[[f"ohid_pct_{x}" for x in groups]], how="inner")
@@ -399,7 +481,7 @@ def ohid_5pct_diagnostic(
         rows.append(row)
     out = pd.DataFrame(rows)
     best = out.loc[out["mean_abs_diff_pp"].idxmin()]
-    lsoa_err = float(out.loc[out["ethnic_mix_level"] == "lsoa21cd", "mean_abs_diff_pp"].iloc[0])
+    lsoa_err = float(out.loc[out["ethnic_mix_level"] == "lsoa21_code", "mean_abs_diff_pp"].iloc[0])
     check(
         ctx,
         "CAT-11",
@@ -426,7 +508,12 @@ def run(
     lookup = load_lookup(cfg)
     frames = load_ohid(ctx)
     bridge = build_bridge(ctx, frames["All_admissions"], lookup)
-    dim_trust = build_dim_trust(ctx, frames["Trust_area_lookup"], bridge)
+    hi = cfg.catchments.host_icb
+    path, entry = raw_file(cfg, hi.source, hi.file)
+    host = host_icbs(
+        ctx, read_relationships(path), lookup, frames["Trust_area_lookup"], (path, entry["sha256"])
+    )
+    dim_trust = build_dim_trust(ctx, frames["Trust_area_lookup"], bridge, host)
     comp = compare_with_ohid(ctx, frames, bridge, lsoa_pop, lsoa_eth5, imd_score)
     comp["ethnicity_diagnostic"] = ohid_5pct_diagnostic(
         ctx, bridge, lookup, lsoa_pop, lsoa_eth5, comp["ethnicity"]
@@ -438,7 +525,8 @@ def run(
             "file": cfg.catchments.file,
             "catchment_year": cfg.catchments.catchment_year,
             "admission_type": cfg.catchments.admission_type,
-        }
+        },
+        {"id": cfg.catchments.host_icb.source, "file": cfg.catchments.host_icb.file},
     ]
     write_output(
         bridge,

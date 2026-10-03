@@ -10,10 +10,10 @@ explanation elsewhere, the link points to it.
 | **OA** | Output Area: the smallest Census geography (40–250 households). Used here only inside the lookup that links LSOAs to MSOAs. |
 | **LSOA** | Lower layer Super Output Area: small areas of ~1,000–3,000 residents (~1,500 typical), built from OAs. This project uses the **2021** set: 33,755 in England. Codes start `E01`. The base unit of every output (ADR-0001). |
 | **MSOA** | Middle layer Super Output Area: groups of ~4–5 LSOAs (5,000–15,000 residents). 6,856 in England (2021). Codes start `E02`. OHID publishes catchments at this level. |
-| **LTLA** | Lower-tier local authority: a district, unitary or borough council area. `ltla21cd` is the **2021** set (309 in England), before the 2023 reorganisations in Cumbria, North Yorkshire and Somerset. Census tables and the IPF seed use it. |
+| **LTLA** | Lower-tier local authority: a district, unitary or borough council area. `ltla21_code` is the **2021** set (309 in England), before the 2023 reorganisations in Cumbria, North Yorkshire and Somerset. Census tables and the IPF seed use it. |
 | **UTLA** | Upper-tier local authority: a county council or unitary authority (e.g. Lancashire County Council, Blackpool). Used only in a diagnostic (CAT-11). |
-| **LAD** | Local Authority District: the current set (April 2026 lookup), `lad_cd`. Where councils have merged since 2021 it differs from LTLA 2021 (e.g. Barrow-in-Furness and South Lakeland are now part of Westmorland and Furness). |
-| **Region** (`rgn21cd`) | One of England's 9 ONS statistical regions (e.g. North West). |
+| **LAD** | Local Authority District: the current set (April 2026 lookup), `lad_code`. Where councils have merged since 2021 it differs from LTLA 2021 (e.g. Barrow-in-Furness and South Lakeland are now part of Westmorland and Furness). |
+| **Region** (`rgn21_code`) | One of England's 9 ONS statistical regions (e.g. North West). |
 | **ICB** | Integrated Care Board: the NHS body that plans and funds health services for an area. 36 in England (April 2026). L&SC ICB is `E54000048` (ONS code) / `QE1` (ODS code). |
 | **Sub-ICB / SICBL** | Sub-ICB Location: a sub-division of an ICB, usually corresponding to a former Clinical Commissioning Group (CCG) or "place". L&SC has 8. |
 | **NHSER** | NHS England region (7), e.g. North West (`Y62`). |
@@ -94,6 +94,9 @@ explanation elsewhere, the link points to it.
 | **Hard / soft check** | A hard check stops the pipeline if it fails. A soft (informational) check is only reported. IDs like `GEO-01`, `CEN-10` and `ROL-05` are listed in `validation_report.md`. |
 | **ADR** | Architecture decision record: a short document recording one decision, the options and why (`docs/decisions/`). |
 | **Star schema** | A table design with one large **fact** table of numbers (`fact_population`), plus small **dimension** tables (`dim_lsoa`, `dim_ethnicity`, …) joined to it by keys. Suited to SQL/BI (ADR-0018). |
+| **Snowflake schema** | A star schema where a dimension is split further into linked tables so each attribute is stored once (here, geography: `dim_lsoa` → `dim_sub_icb` → `dim_icb` → `dim_nhs_region`; ADR-0025). |
+| **Host ICB** | The one ICB whose geography a trust is located in (`dim_trust.host_icb_code`), from the NHS ODS directory. Not a reporting line (trusts are independent bodies), and distinct from the trust's *catchment*, which spans ICBs (ADR-0025). |
+| **ODS** | NHS Organisation Data Service: the register of NHS organisations and their codes (e.g. `QE1`, `RXN`) and relationships. Source S10. (The `.ods` file extension, as in the OHID file, is unrelated: OpenDocument Spreadsheet.) |
 | **Bridge table** | A table linking two dimensions many-to-many with weights: here LSOA ↔ trust with catchment proportions. |
 | **Parquet** | A compressed, column-oriented file format read by pandas, Databricks, DuckDB, Power BI and others. The canonical output format. |
 | **BI** | Business intelligence (tools such as Power BI or Databricks SQL dashboards). |

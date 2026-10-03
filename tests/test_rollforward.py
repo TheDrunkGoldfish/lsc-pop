@@ -79,7 +79,7 @@ def test_ltla_fallback_when_lsoa_empty(ctx):
 
 
 def _cube(b):
-    return Cube(b, DIMS, {"lsoa21cd": LSOAS, "sex": SEXES, "age": list(range(91)), "eth19": ETH})
+    return Cube(b, DIMS, {"lsoa21_code": LSOAS, "sex": SEXES, "age": list(range(91)), "eth19": ETH})
 
 
 def test_roll_forward_sums_exactly_to_mye(ctx):
@@ -148,7 +148,7 @@ def test_load_mye_total_mismatch_fails(project_copy, ctx):
 def test_summarise_shapes(ctx):
     rng = np.random.default_rng(4)
     est = rng.uniform(size=(3, 2, 91, 19))
-    lk = pd.DataFrame({"lsoa21cd": LSOAS, "in_focus_icb": [True, False, True]})
+    lk = pd.DataFrame({"lsoa21_code": LSOAS, "in_focus_icb": [True, False, True]})
     s = rf.summarise(ctx.cfg, est, lk, LSOAS)
     eng = s[s["geography"] == "England"]["population"].sum()
     foc = s[s["geography"] == "Focus ICB"]["population"].sum()

@@ -25,10 +25,29 @@ STAGE = "geography"
 LOOKUP_PATH = "geography/lsoa_lookup"
 
 OUTPUT_COLUMNS = [
-    "lsoa21cd", "lsoa21nm", "msoa21cd", "msoa21nm", "ltla21cd", "ltla21nm", "rgn21cd", "rgn21nm",
-    "lad_cd", "lad_nm", "sicbl_cd", "sicbl_ods", "sicbl_nm", "icb_cd", "icb_ods", "icb_nm",
-    "nhser_cd", "nhser_ods", "nhser_nm", "nhs_geog_vintage", "in_footprint", "in_focus_icb",
-]  # fmt: skip
+    "lsoa21_code",
+    "lsoa21_name",
+    "msoa21_code",
+    "msoa21_name",
+    "ltla21_code",
+    "ltla21_name",
+    "rgn21_code",
+    "rgn21_name",
+    "lad_code",
+    "lad_name",
+    "sicbl_code",
+    "sicbl_ods_code",
+    "sicbl_name",
+    "icb_code",
+    "icb_ods_code",
+    "icb_name",
+    "nhser_code",
+    "nhser_ods_code",
+    "nhser_name",
+    "nhs_geog_vintage",
+    "in_footprint",
+    "in_focus_icb",
+]
 
 
 def read_lookup(ctx: RunContext, name: str, spec: LookupSpec) -> pd.DataFrame:
@@ -50,10 +69,10 @@ def read_lookup(ctx: RunContext, name: str, spec: LookupSpec) -> pd.DataFrame:
             step.drop(
                 before - len(df), "exact duplicate rows after column selection (e.g. OA rows)"
             )
-        if spec.key == "lsoa21cd":
-            n_w = int((~df["lsoa21cd"].str.startswith("E")).sum())
+        if spec.key == "lsoa21_code":
+            n_w = int((~df["lsoa21_code"].str.startswith("E")).sum())
             if n_w:
-                df = df[df["lsoa21cd"].str.startswith("E")]
+                df = df[df["lsoa21_code"].str.startswith("E")]
                 step.drop(n_w, "non-England LSOAs")
         dup = df[spec.key].duplicated(keep=False)
         if dup.any():
@@ -68,7 +87,7 @@ def read_lookup(ctx: RunContext, name: str, spec: LookupSpec) -> pd.DataFrame:
 
 def apply_footprint(cfg: Config, lookup: pd.DataFrame) -> pd.DataFrame:
     fp = cfg.footprint
-    known = set(lookup["icb_cd"])
+    known = set(lookup["icb_code"])
     for label, codes in (
         ("footprint.icb_codes", fp.icb_codes),
         ("focus_icb_codes", fp.focus_icb_codes),
@@ -82,8 +101,8 @@ def apply_footprint(cfg: Config, lookup: pd.DataFrame) -> pd.DataFrame:
             "footprint (ADR-0002) already contains every catchment LSOA"
         )
     out = lookup.copy()
-    out["in_footprint"] = True if fp.mode == "england" else out["icb_cd"].isin(fp.icb_codes)
-    out["in_focus_icb"] = out["icb_cd"].isin(fp.focus_icb_codes)
+    out["in_footprint"] = True if fp.mode == "england" else out["icb_code"].isin(fp.icb_codes)
+    out["in_focus_icb"] = out["icb_code"].isin(fp.focus_icb_codes)
     return out
 
 
@@ -99,19 +118,24 @@ def build_lookup(ctx: RunContext) -> pd.DataFrame:
     ) as step:
         for name, df in (("nhs", nhs), ("census", census), ("ltla_region", region)):
             step.input(name, df)
-        merged = nhs.merge(census, on="lsoa21cd", how="outer", indicator=True, validate="1:1")
+        merged = nhs.merge(census, on="lsoa21_code", how="outer", indicator=True, validate="1:1")
         unmatched = merged[merged["_merge"] != "both"]
         check(
-            ctx, "GEO-01", "NHS and Census lookups cover the same England LSOAs",
-            unmatched.empty, stage=STAGE,
-            metrics={"only_nhs": int((unmatched["_merge"] == "left_only").sum()),
-                     "only_census": int((unmatched["_merge"] == "right_only").sum())},
-        )  # fmt: skip
+            ctx,
+            "GEO-01",
+            "NHS and Census lookups cover the same England LSOAs",
+            unmatched.empty,
+            stage=STAGE,
+            metrics={
+                "only_nhs": int((unmatched["_merge"] == "left_only").sum()),
+                "only_census": int((unmatched["_merge"] == "right_only").sum()),
+            },
+        )
         merged = merged.drop(columns="_merge")
-        merged = merged.merge(region, on="ltla21cd", how="left", validate="m:1")
+        merged = merged.merge(region, on="ltla21_code", how="left", validate="m:1")
         merged["nhs_geog_vintage"] = g.nhs.vintage
         lookup = apply_footprint(cfg, merged)
-        lookup = lookup[OUTPUT_COLUMNS].sort_values("lsoa21cd").reset_index(drop=True)
+        lookup = lookup[OUTPUT_COLUMNS].sort_values("lsoa21_code").reset_index(drop=True)
         step.note(
             f"{len(lookup)} LSOAs; footprint {int(lookup['in_footprint'].sum())} "
             f"({cfg.footprint.mode}); focus ICB {int(lookup['in_focus_icb'].sum())}"
@@ -132,43 +156,68 @@ def validate_lookup(ctx: RunContext, lookup: pd.DataFrame) -> None:
     cfg = ctx.cfg
     n, expected = len(lookup), cfg.geography.expected_lsoa_count
     check(
-        ctx, "GEO-02", "England LSOA count matches expected", n == expected,
-        stage=STAGE, metrics={"lsoas": n, "expected": expected},
-    )  # fmt: skip
+        ctx,
+        "GEO-02",
+        "England LSOA count matches expected",
+        n == expected,
+        stage=STAGE,
+        metrics={"lsoas": n, "expected": expected},
+    )
     check(
-        ctx, "GEO-03", "LSOA codes unique", lookup["lsoa21cd"].is_unique, stage=STAGE,
-        metrics={"duplicates": int(lookup["lsoa21cd"].duplicated().sum())},
-    )  # fmt: skip
+        ctx,
+        "GEO-03",
+        "LSOA codes unique",
+        lookup["lsoa21_code"].is_unique,
+        stage=STAGE,
+        metrics={"duplicates": int(lookup["lsoa21_code"].duplicated().sum())},
+    )
     geo_cols = [c for c in OUTPUT_COLUMNS if c not in ("in_footprint", "in_focus_icb")]
     blanks = {c: int((lookup[c].isna() | (lookup[c] == "")).sum()) for c in geo_cols}
     blanks = {c: v for c, v in blanks.items() if v}
     check(
-        ctx, "GEO-04", "Every LSOA has MSOA, LTLA21, region, LAD, sub-ICB, ICB and NHS region",
-        not blanks, stage=STAGE, metrics={"blank_cells": blanks},
-    )  # fmt: skip
+        ctx,
+        "GEO-04",
+        "Every LSOA has MSOA, LTLA21, region, LAD, sub-ICB, ICB and NHS region",
+        not blanks,
+        stage=STAGE,
+        metrics={"blank_cells": blanks},
+    )
     for cid, child, parent in (
-        ("GEO-05", "sicbl_cd", "icb_cd"),
-        ("GEO-06", "icb_cd", "nhser_cd"),
-        ("GEO-07", "msoa21cd", "ltla21cd"),
-        ("GEO-08", "ltla21cd", "lad_cd"),
-        ("GEO-09", "ltla21cd", "rgn21cd"),
+        ("GEO-05", "sicbl_code", "icb_code"),
+        ("GEO-06", "icb_code", "nhser_code"),
+        ("GEO-07", "msoa21_code", "ltla21_code"),
+        ("GEO-08", "ltla21_code", "lad_code"),
+        ("GEO-09", "ltla21_code", "rgn21_code"),
     ):
         bad = _nests(lookup, child, parent)
         check(
-            ctx, cid, f"{child} nests within {parent}", bad.empty, stage=STAGE,
+            ctx,
+            cid,
+            f"{child} nests within {parent}",
+            bad.empty,
+            stage=STAGE,
             metrics={"violations": int(len(bad)), "examples": bad.index[:5].tolist()},
-        )  # fmt: skip
+        )
     # Informational: LADs are not required to nest within ICBs (e.g. North Yorkshire spans two).
-    split = _nests(lookup, "lad_cd", "icb_cd")
+    split = _nests(lookup, "lad_code", "icb_code")
     check(
-        ctx, "GEO-10", "LADs split across ICBs (informational)", True, stage=STAGE, hard=False,
+        ctx,
+        "GEO-10",
+        "LADs split across ICBs (informational)",
+        True,
+        stage=STAGE,
+        hard=False,
         metrics={"lads_split": int(len(split)), "examples": split.index[:10].tolist()},
-    )  # fmt: skip
+    )
     fp = lookup[lookup["in_footprint"]]
     check(
-        ctx, "GEO-11", "Footprint is non-empty", len(fp) > 0, stage=STAGE,
+        ctx,
+        "GEO-11",
+        "Footprint is non-empty",
+        len(fp) > 0,
+        stage=STAGE,
         metrics={"footprint_lsoas": len(fp), "mode": cfg.footprint.mode},
-    )  # fmt: skip
+    )
     focus = lookup[lookup["in_focus_icb"]]
     check(
         ctx,
@@ -179,10 +228,10 @@ def validate_lookup(ctx: RunContext, lookup: pd.DataFrame) -> None:
         hard=False,
         metrics={
             "lsoas": len(focus),
-            "sicbls": int(focus["sicbl_cd"].nunique()),
-            "lads": int(focus["lad_cd"].nunique()),
-            "ltla21s": int(focus["ltla21cd"].nunique()),
-            "msoa21s": int(focus["msoa21cd"].nunique()),
+            "sicbls": int(focus["sicbl_code"].nunique()),
+            "lads": int(focus["lad_code"].nunique()),
+            "ltla21s": int(focus["ltla21_code"].nunique()),
+            "msoa21s": int(focus["msoa21_code"].nunique()),
         },
     )
 

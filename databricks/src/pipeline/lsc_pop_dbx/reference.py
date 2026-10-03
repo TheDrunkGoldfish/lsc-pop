@@ -31,6 +31,7 @@ PARAMS_SCHEMA = (
     "expected_lsoa_count int, footprint_mode string, footprint_icb_codes array<string>, "
     "focus_icb_codes array<string>, focus_trusts array<string>, core20_max_decile int, "
     "local_quintile_within string, catchment_year int, admission_type string, "
+    "host_icb_relationship string, host_icb_target_role string, "
     "nhs_geog_vintage string, iod_edition string, config_hash string, code_hash string, "
     "bundle_target string, git_commit string"
 )
@@ -60,6 +61,8 @@ def params(spark, n: Names, cfg) -> DataFrame:
         "local_quintile_within": cfg.deprivation.local_quintile.within,
         "catchment_year": cfg.catchments.catchment_year,
         "admission_type": cfg.catchments.admission_type,
+        "host_icb_relationship": cfg.catchments.host_icb.relationship,
+        "host_icb_target_role": cfg.catchments.host_icb.target_role,
         "nhs_geog_vintage": cfg.geography.nhs.vintage,
         "iod_edition": cfg.deprivation.edition,
         "config_hash": cfg.config_hash(),

@@ -68,11 +68,11 @@ def _comparison(spark, n: Names) -> tuple[dict[str, pd.DataFrame], list]:
             ),
             "eth19",
         )
-        .groupBy("lsoa21cd")
+        .groupBy("lsoa21_code")
         .pivot("code_5", ["A", "B", "M", "O", "W"])
         .agg(F.sum("population"))
         .toPandas()
-        .set_index("lsoa21cd")
+        .set_index("lsoa21_code")
         .fillna(0.0)
     )
     pop = e5.sum(axis=1)
@@ -80,9 +80,9 @@ def _comparison(spark, n: Names) -> tuple[dict[str, pd.DataFrame], list]:
     lookup = t("silver", "lsoa_geography").toPandas()
     imd = (
         t("silver", "iod")
-        .select("lsoa21cd", "imd_score")
+        .select("lsoa21_code", "imd_score")
         .toPandas()
-        .set_index("lsoa21cd")["imd_score"]
+        .set_index("lsoa21_code")["imd_score"]
     )
     ctx = CollectingContext(cfg)
     frames = _ohid_frames(n, cfg)

@@ -31,12 +31,12 @@ kept) → `outputs/<run_id>/` → `docs/` (ADRs in `docs/decisions/`).
 - Sources: `config/sources.yaml` is the register. `uv run lsc-pop download [-s S5]` fetches, then `uv run lsc-pop docs`.
   Raw files are read-only. Census LSOA tables come via the Nomis API, the seed via the ONS API (ADR-0010/0011).
   Geography is April 2026 (S7) plus the Dec 2021 OA/LSOA/MSOA/LAD lookup (S7b) for MSOA21 and LTLA21, plus LTLA→region
-  (S7c). Lookups are config-driven (`config.geography`) with vintage-free columns (`icb_cd`, `lad_cd`; ADR-0014).
+  (S7c); S10 = ODS directory snapshot for the trust → host ICB link. Column names end `_code` / `_name`. Lookups are config-driven (`config.geography`) with vintage-free columns (`icb_code`, `lad_code`; ADR-0014).
 - Stage outputs live in `data/interim/<stage>/` and are written with `provenance.write_output`. Checks go through
   `validate.check(ctx, ...)` into `outputs/<run_id>/validation.jsonl`. Read raw files with `download.raw_file`, which
   verifies the hash.
 - Big arrays (LSOA × sex × age × eth) are `provenance.Cube`, written with `write_cube`/`read_cube`. Stage C = `base.py`
-  (uses the pure `ipf.py`); Stage D = `rollforward.py`. Stage F = `deprivation.py`, G = `catchments.py`, outputs = `outputs.py` (star schema; no aggregates, ADR-0018).
+  (uses the pure `ipf.py`); Stage D = `rollforward.py`. Stage F = `deprivation.py`, G = `catchments.py`, outputs = `outputs.py` (star schema with snowflaked geography and `dim_trust.host_icb_code`; no aggregates; ADR-0018, ADR-0025).
 - `uv run lsc-pop run` runs every stage (~2 min once data is downloaded). Then `uv run lsc-pop docs` regenerates
   `transformations.md`, `validation_report.md`, `sensitivity.md`, `data_sources.md` and figures.
 - New releases or geography changes: follow `docs/updating.md`.
