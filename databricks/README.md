@@ -164,3 +164,15 @@ src/pipeline/lsc_pop_dbx/      helpers (bronze readers, reference tables, IPF mo
 src/parity_task.py             parity job entry point
 tests/                         harness, synthetic data, tests, bundle_schema.json
 ```
+
+## 8. After renaming columns of a streaming table: full refresh
+
+Bronze Census and seed tables are Auto Loader streaming tables. An update doesn't re-read files it has already
+processed, so renaming a column there (as in ADR-0025, `ltla21cd` → `ltla21_code`) leaves the old rows with the new
+column empty, and the pipeline fails later (e.g. `seed incomplete for LTLAs ...`). Run a one-off full refresh, then the
+normal job:
+
+```bash
+databricks bundle run -t dev lsc_pop_pipeline --full-refresh-all
+databricks bundle run -t dev lsc_pop_job
+```

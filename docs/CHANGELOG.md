@@ -14,6 +14,9 @@ All notable changes to the pipeline and its outputs. Changes that affect the num
 - `dim_trust.host_icb_code`: the one ICB each trust is located in, from the NHS ODS directory (new source S10,
   `ods_api_orgs` download kind). Checks CAT-12, CAT-13 (new), OUT-01 (extended), OUT-07 (new). Parity covers the new
   tables.
+- Databricks: renaming a streaming-table column needs a one-off full refresh of the pipeline (`databricks/README.md`
+  section 8). Verified on the dev workspace: job succeeds, 0 hard check failures (only the expected soft CEN-12),
+  CAT-12/CAT-13/OUT-01/OUT-07 pass.
 
 ### Phase 9: Databricks-native implementation (2026-10-02)
 - `databricks/`: a Databricks Asset Bundle with dev, test and prod targets. Catalog, schemas and Volume are
